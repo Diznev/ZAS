@@ -1,8 +1,8 @@
-# ZAS — Distribution Package
+﻿# ZAS
 
 **ZAS** is a desktop application for **authorized** vulnerability research and exploitation (internal red team, lab ranges, engagements with written scope).
 
-This package is the **runtime distribution**: GUI, exploit modules, and helper libraries. No marketplace or online module store — everything runs locally.
+This package is the **runtime distribution**: GUI, exploit modules, and helper libraries.
 
 > **Only test systems you are authorized to assess.** Unauthorized access is illegal.
 
