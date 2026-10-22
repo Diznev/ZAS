@@ -6,6 +6,8 @@ This package is the **runtime distribution**: GUI, exploit modules, and helper l
 
 > **Only test systems you are authorized to assess.** Unauthorized access is illegal.
 
+![ZAS GUI](docs/zas_gui_screenshot.png)
+
 ---
 
 ## Contents
