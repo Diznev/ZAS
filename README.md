@@ -101,3 +101,9 @@ python zas_gui.py
 ## Disclaimer
 
 For defensive security testing, education, and **authorized** red-team use only. You are responsible for compliance with local law and engagement rules.
+
+---
+
+## Contact
+
+**Telegram:** [@vaalzevul](https://t.me/vaalzevul)
