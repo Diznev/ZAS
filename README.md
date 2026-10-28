@@ -1,4 +1,4 @@
-# ZAS
+# ZAS v5.2
 
 **ZAS** is a desktop application for **authorized** vulnerability research and exploitation (internal red team, lab ranges, engagements with written scope).
 
@@ -14,16 +14,19 @@ This package is the **runtime distribution**: GUI, exploit modules, and helper l
 
 ```
 ZAS/
-├── zas_gui.py           # Main GUI
-├── zas_config.json      # Saved settings (mode, modules, TLS, scan options)
-├── requirements.txt     # Python dependencies
+├── zas_gui.py                 # Main GUI
+├── zas_config.example.json    # Settings template (copy to zas_config.json)
+├── requirements.txt           # Python dependencies
+├── CHANGELOG.md               # Release history
 ├── README.md
-├── core/                # Theme, export (TXT/JSON/CSV/HTML/SARIF), shells UI, audit log
-├── exploits/            # Exploit modules (WordPress / Joomla / other) + zas_core
-└── lib/                 # Fingerprint, WAF, recon, creds, pivot, stealth, notifications
+├── core/                      # Theme, export (TXT/JSON/CSV/HTML/SARIF), shells UI, audit log
+├── exploits/                  # Exploit modules (WordPress / Joomla / other) + zas_core
+└── lib/                       # Fingerprint, WAF, recon, creds, pivot, stealth, notifications
 ```
 
-**Included:** ~80 exploit modules, shell session manager, reporting, optional advanced features (fingerprint, WAF, notifications).
+**Included:** 77 exploit modules, shell session manager, reporting, optional advanced features (fingerprint, WAF, notifications).
+
+Every module is backed by a real, publicly disclosed PoC. See [CHANGELOG.md](CHANGELOG.md) for the source behind each one.
 
 ---
 
@@ -40,6 +43,7 @@ ZAS/
 ```bat
 cd ZAS
 python -m pip install -r requirements.txt
+copy zas_config.example.json zas_config.json
 ```
 
 If Python is not installed: [python.org](https://www.python.org/downloads/) → check **“Add Python to PATH”**.
@@ -82,7 +86,9 @@ python zas_gui.py
 ## Notes
 
 - **Exploit is the only mode.** Modules implement `info()` + `exploit()`; there is no passive detection stage.
-- **`zas_config.json` and `reports/`** can contain credentials and scan data — treat as sensitive.
+- **A module only ships if a real public PoC backs it.** If a working chain cannot be derived from the public source, the module returns `ok=False` with a precise reason rather than inventing a request shape.
+- **`ok=True` means execution was confirmed** — command output verified by marker. An HTTP status code alone is never treated as proof.
+- **`zas_config.json` and `reports/`** hold targets, credentials and shell tokens. They are gitignored — treat as sensitive.
 - **Ignore SSL** is for lab targets with invalid certificates; leave it on only if you understand the risk.
 - Cleanup button removes tracked shells/users/templates where possible.
 

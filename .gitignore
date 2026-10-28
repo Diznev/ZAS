@@ -10,7 +10,7 @@ reports/
 *.log
 
 # Local tooling / editor / agent state — never ship
-.mimocode/
+.m*/
 .vscode/
 .idea/
 *.swp

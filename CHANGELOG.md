@@ -79,5 +79,5 @@ reason instead of inventing a request shape.
 
 ### Packaging
 
-- `.mimocode/`, `zas_config.json`, `__pycache__`, editor and agent state excluded from git.
+- Local config, caches and editor/agent state are excluded from git.
 - `zas_config.example.json` added as the tracked template.
