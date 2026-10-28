@@ -214,7 +214,7 @@ class ShellTab:
                     output = result.get("output", "No output")
                     self.frame.after(0, lambda: self._cmd_output(output))
                 except Exception as e:
-                    self.frame.after(0, lambda: self._cmd_output(f"Error: {e}"))
+                    self.frame.after(0, lambda e=e: self._cmd_output(f"Error: {e}"))
             threading.Thread(target=run_pseudo, daemon=True).start()
         else:
             # Real shell: direct execution
@@ -239,7 +239,7 @@ class ShellTab:
                     
                     self.frame.after(0, lambda: self._cmd_output(output))
                 except Exception as e:
-                    self.frame.after(0, lambda: self._cmd_output(f"Error: {e}"))
+                    self.frame.after(0, lambda e=e: self._cmd_output(f"Error: {e}"))
             threading.Thread(target=run_real, daemon=True).start()
     
     def _cmd_output(self, output):
@@ -274,7 +274,7 @@ class ShellTab:
                 
                 self.frame.after(0, lambda: self._update_files(output))
             except Exception as e:
-                self.frame.after(0, lambda: self._log_console(f"[!] File browse error: {e}"))
+                self.frame.after(0, lambda e=e: self._log_console(f"[!] File browse error: {e}"))
         
         threading.Thread(target=run, daemon=True).start()
     
@@ -404,7 +404,7 @@ class ShellTab:
                     self.frame.after(0, lambda: self._log_console("[!] Connection test failed"))
                     self.frame.after(0, lambda: self.status_dot.configure(fg="#f85149", text="● Error"))
             except Exception as e:
-                self.frame.after(0, lambda: self._log_console(f"[!] Connection error: {e}"))
+                self.frame.after(0, lambda e=e: self._log_console(f"[!] Connection error: {e}"))
                 self.frame.after(0, lambda: self.status_dot.configure(fg="#f85149", text="● Disconnected"))
         
         threading.Thread(target=run, daemon=True).start()

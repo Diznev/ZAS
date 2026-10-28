@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ZAS v5.1
+ZAS v5.2
 """
 
 import os
@@ -191,7 +191,7 @@ class Tooltip:
 class ZASApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("ZAS v5.1")
+        self.root.title("ZAS v5.2")
         self.root.geometry("1700x1000")
         self.root.minsize(1500, 900)
         self.root.configure(bg=COLORS["bg"])
@@ -259,7 +259,7 @@ class ZASApp:
         title_bar.pack(fill="x")
         title_bar.pack_propagate(False)
 
-        tk.Label(title_bar, text="⚡ ZAS v5.1", font=("Consolas", 11, "bold"),
+        tk.Label(title_bar, text="⚡ ZAS v5.2", font=("Consolas", 11, "bold"),
                  fg=COLORS["accent"], bg=COLORS["bg4"]).pack(side="left", padx=12)
         btn_frame = tk.Frame(title_bar, bg=COLORS["bg4"])
         btn_frame.pack(side="right", padx=8)
@@ -313,16 +313,13 @@ class ZASApp:
         seg = tk.Frame(mode_box, bg=COLORS["bg3"])
         seg.pack(side="left")
         self._mode_buttons = {}
-        for txt, val, color in [("Detect", "detect", COLORS["yellow"]),
-                                ("Exploit", "exploit", COLORS["accent"]),
-                                ("Audit", "audit", COLORS["cyan"])]:
-            b = tk.Radiobutton(seg, text=txt, variable=self.mode_var, value=val,
-                               indicatoron=False, width=8, pady=5,
-                               bg=COLORS["bg3"], fg=COLORS["fg2"], selectcolor=COLORS["bg2"],
-                               activebackground=COLORS["bg2"], activeforeground=color,
-                               font=("Consolas", 9, "bold"))
-            b.pack(side="left", padx=0)
-            self._mode_buttons[val] = b
+        b = tk.Radiobutton(seg, text="Exploit", variable=self.mode_var, value="exploit",
+                           indicatoron=False, width=8, pady=5,
+                           bg=COLORS["bg3"], fg=COLORS["fg2"], selectcolor=COLORS["bg2"],
+                           activebackground=COLORS["bg2"], activeforeground=COLORS["accent"],
+                           font=("Consolas", 9, "bold"))
+        b.pack(side="left", padx=0)
+        self._mode_buttons["exploit"] = b
 
         _sep()
 
@@ -1128,7 +1125,7 @@ class ZASApp:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
-            self.mode_var.set(cfg.get("mode", "detect"))
+            self.mode_var.set(cfg.get("mode", "exploit"))
             self.threads_var.set(cfg.get("threads", "10"))
             self.timeout_var.set(cfg.get("timeout", "15"))
             self.cmd_var.set(cfg.get("cmd", "id"))
@@ -1946,18 +1943,7 @@ class ZASApp:
                         continue
 
                     try:
-                        if mode == "detect":
-                            result = mod.detect(url, timeout=timeout)
-                            if result.get("vulnerable"):
-                                self.log(f"[VULN] {cve} @ {url}", "vuln")
-                                self._send_notification(cve, url, "vulnerable", result)
-                                audit_log.finding(cve, url, "vulnerable", reason=result.get("reason"))
-                                with lock:
-                                    stats["vuln"] += 1
-                                    with self.results_lock:
-                                        self.results_data.append({"cve": cve, "url": url, "status": "vulnerable", "details": result})
-
-                        elif mode == "exploit":
+                        if mode == "exploit":
                             result = mod.exploit(url, timeout=timeout, **extra_args)
                             if result.get("ok"):
                                 self.log(f"[OK] {cve} @ {url}", "success")
@@ -2024,17 +2010,6 @@ class ZASApp:
                                 reason = result.get("reason", "unknown")
                                 self.log(f"[FAIL] {cve} @ {url} - {reason}", "info")
 
-                        elif mode == "audit":
-                            plugin = exp.get("plugin", "unknown")
-                            result = mod.detect(url, timeout=timeout)
-                            version = result.get("version", "unknown")
-                            status = "vulnerable" if result.get("vulnerable") else "installed"
-                            self.log(f"[AUDIT] {plugin} v{version} @ {url} [{status}]", "vuln" if result.get("vulnerable") else "info")
-                            with lock:
-                                if result.get("vulnerable"):
-                                    stats["vuln"] += 1
-                                with self.results_lock:
-                                    self.results_data.append({"cve": cve, "url": url, "plugin": plugin, "version": version, "status": status, "details": result})
                     except Exception as e:
                         self.log(f"[ERR] {cve} @ {url} - {e}", "error")
                         audit_log.error(cve, url, e)

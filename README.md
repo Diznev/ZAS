@@ -1,4 +1,4 @@
-﻿# ZAS
+# ZAS
 
 **ZAS** is a desktop application for **authorized** vulnerability research and exploitation (internal red team, lab ranges, engagements with written scope).
 
@@ -57,7 +57,7 @@ python zas_gui.py
 ## Quick start
 
 1. **Target** — type a URL and press **＋**, or **📁** to load a `.txt` list (one URL per line).
-2. **Mode** — use **Exploit** for full exploitation (Detect/Audit are limited in this build).
+2. **Mode** — **Exploit** (the only mode).
 3. **Modules** — search or filter (CRIT / HIGH / WordPress / Joomla / Other), tick modules in the table.
 4. Optional: Threads / Timeout / Jitter / Delay, **Skip validation**, **Ignore SSL** (for lab / self-signed certs).
 5. **▶ START** — progress in **Output** (right panel).
@@ -72,7 +72,7 @@ python zas_gui.py
 
 | Zone | Purpose |
 |------|---------|
-| **Top bar** | Target, mode (Detect / Exploit / Audit), START / PAUSE / STOP, scan settings |
+| **Top bar** | Target, mode (Exploit), START / PAUSE / STOP, scan settings |
 | **Left menu** | Modules, Exploit, Advanced, Shodan, Notify, **Shells** |
 | **Main** | Module table (search, filters, severity badges, `?` details) |
 | **Right** | Output log + export buttons |
@@ -81,7 +81,7 @@ python zas_gui.py
 
 ## Notes
 
-- **Exploit mode is the main path.** Many modules do not perform full passive detection (`detect` may say `not_checked`).
+- **Exploit is the only mode.** Modules implement `info()` + `exploit()`; there is no passive detection stage.
 - **`zas_config.json` and `reports/`** can contain credentials and scan data — treat as sensitive.
 - **Ignore SSL** is for lab targets with invalid certificates; leave it on only if you understand the risk.
 - Cleanup button removes tracked shells/users/templates where possible.

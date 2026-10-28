@@ -62,7 +62,7 @@ def export_sarif(results, path):
     sarif = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{"tool": {"driver": {"name": "ZAS", "version": "5.0", "rules": rules}}, "results": res}],
+        "runs": [{"tool": {"driver": {"name": "ZAS", "version": "5.2", "rules": rules}}, "results": res}],
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(sarif, f, indent=2, ensure_ascii=False)
@@ -75,7 +75,7 @@ def generate_html(data, scan_info):
     installed_count = sum(1 for r in data if r["status"] == "installed")
     total_targets = scan_info.get("targets", 0)
     total_modules = scan_info.get("modules", 0)
-    mode = scan_info.get("mode", "detect")
+    mode = scan_info.get("mode", "exploit")
 
     cards = ""
     for r in data:
@@ -138,16 +138,16 @@ h1{{color:#58a6ff;font-size:28px;margin-bottom:4px}}
 </head>
 <body>
 <div class="container">
-    <h1>ZAS v5.0 Scan Report</h1>
+    <h1>ZAS v5.2 Scan Report</h1>
     <div class="subtitle">{_html.escape(str(scan_info.get("date", "")))} | Mode: {_html.escape(str(mode))}</div>
     <div class="stats">
         <div class="stat"><div class="stat-value info">{total_targets}</div><div class="stat-label">Targets</div></div>
         <div class="stat"><div class="stat-value info">{total_modules}</div><div class="stat-label">Modules</div></div>
         <div class="stat"><div class="stat-value {"danger" if vuln_count else ""}">{vuln_count}</div><div class="stat-label">Vulnerable</div></div>
-        {"<div class='stat'><div class='stat-value info'>" + str(installed_count) + "</div><div class='stat-label'>Installed</div></div>" if mode == "audit" else "<div class='stat'><div class='stat-value " + ("warning" if expl_count else "") + "'>" + str(expl_count) + "</div><div class='stat-label'>Exploited</div></div>"}
+        <div class="stat"><div class="stat-value {"warning" if expl_count else ""}">{expl_count}</div><div class="stat-label">Exploited</div></div>
     </div>
     {cards}
-    <div class="footer">ZAS v5.1 | Generated {_html.escape(str(scan_info.get("date", "")))}</div>
+    <div class="footer">ZAS v5.2 | Generated {_html.escape(str(scan_info.get("date", "")))}</div>
 </div>
 </body>
 </html>'''

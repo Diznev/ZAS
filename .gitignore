@@ -1,6 +1,25 @@
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.venv/
+venv/
+
+# ZAS runtime output — may contain credentials and engagement data
 reports/
 *.log
-.venv/
+
+# Local tooling / editor / agent state — never ship
+.mimocode/
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# Local config holds targets, credentials and shell tokens.
+# Ship zas_config.example.json instead.
+zas_config.json
+
+# Internal working notes (not part of the distribution)
+docs/_*.md
+docs/*-integration.md

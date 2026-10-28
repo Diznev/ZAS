@@ -47,7 +47,7 @@ class AsyncScanner:
         if self.rate_limit > 0:
             await asyncio.sleep(1.0 / self.rate_limit)
 
-    async def _scan_one(self, url, exploit_module, mode="detect", extra_args=None):
+    async def _scan_one(self, url, exploit_module, mode="exploit", extra_args=None):
         """Scan single target with one exploit module."""
         async with self._semaphore:
             await self._rate_wait()
@@ -58,17 +58,15 @@ class AsyncScanner:
 
                 session = await self._get_session(host)
 
-                if mode == "detect":
-                    result = await self._run_detect(session, url, exploit_module)
-                elif mode == "exploit":
+                if mode == "exploit":
                     result = await self._run_exploit(session, url, exploit_module, extra_args or {})
                 else:
                     result = {"ok": False, "reason": f"Unknown mode: {mode}"}
 
                 async with self._lock:
                     self._stats["done"] += 1
-                    if result.get("vulnerable") or result.get("ok"):
-                        self._stats["vuln" if mode == "detect" else "exploited"] += 1
+                    if result.get("ok"):
+                        self._stats["exploited"] += 1
                     self._results.append({"url": url, "module": exploit_module.__name__, "result": result})
 
                 return result
@@ -79,11 +77,6 @@ class AsyncScanner:
                     self._stats["done"] += 1
                 return {"ok": False, "error": str(e)}
 
-    async def _run_detect(self, session, url, mod):
-        """Run detect in thread pool (sync module → async wrapper)."""
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, mod.detect, url, self.timeout)
-
     async def _run_exploit(self, session, url, mod, extra_args):
         """Run exploit in thread pool."""
         loop = asyncio.get_event_loop()
@@ -91,13 +84,13 @@ class AsyncScanner:
             None, lambda: mod.exploit(url, timeout=self.timeout, **extra_args)
         )
 
-    async def scan_targets(self, targets, exploits, mode="detect", extra_args=None, callback=None):
+    async def scan_targets(self, targets, exploits, mode="exploit", extra_args=None, callback=None):
         """Scan multiple targets with multiple exploits concurrently.
 
         Args:
             targets: List of URLs
             exploits: Dict of {name: module} or list of modules
-            mode: "detect" or "exploit"
+            mode: "exploit"
             extra_args: Additional args for exploit()
             callback: async def callback(url, module_name, result) called per-result
 
@@ -120,7 +113,6 @@ class AsyncScanner:
                 tasks.append(self._scan_one(target, mod, mode, extra_args))
 
         if callback:
-            wrapped = []
             for task in asyncio.as_completed(tasks):
                 result = await task
                 if callback:
@@ -140,7 +132,7 @@ class AsyncScanner:
         self._connections.clear()
 
 
-async def async_scan(targets, exploits, mode="detect", max_concurrent=100,
+async def async_scan(targets, exploits, mode="exploit", max_concurrent=100,
                      timeout=15, rate_limit=10.0, extra_args=None, callback=None):
     """High-level async scanning function.
 
@@ -166,7 +158,7 @@ async def async_scan(targets, exploits, mode="detect", max_concurrent=100,
         await scanner.close()
 
 
-def run_async_scan(targets, exploits, mode="detect", max_concurrent=100,
+def run_async_scan(targets, exploits, mode="exploit", max_concurrent=100,
                    timeout=15, rate_limit=10.0, extra_args=None):
     """Synchronous wrapper for async_scan."""
     return asyncio.run(async_scan(
