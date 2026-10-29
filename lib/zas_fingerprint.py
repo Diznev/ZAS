@@ -4,8 +4,6 @@ Uses headers, meta tags, HTML patterns, and favicon hashes.
 """
 
 import re
-import hashlib
-import urllib.parse
 
 
 # ─── CMS Signatures ────────────────────────────────────────────────────────────
@@ -202,41 +200,6 @@ def _extract_joomla_version(html):
             return m.group(1)
     
     return "unknown"
-
-
-def fingerprint_favicon(response_text, base_url):
-    """Extract favicon URL and compute hash for Shodan lookup.
-    
-    Returns:
-        dict with favicon_url and hash (mmh3 hash for Shodan)
-    """
-    result = {"favicon_url": None, "hash": None}
-    
-    if not response_text:
-        return result
-    
-    # Find favicon link
-    patterns = [
-        r'<link[^>]*rel=["\'](?:shortcut )?icon["\'][^>]*href=["\']([^"\']+)["\']',
-        r'<link[^>]*href=["\']([^"\']+)["\'][^>]*rel=["\'](?:shortcut )?icon["\']',
-    ]
-    
-    for pattern in patterns:
-        m = re.search(pattern, response_text, re.I)
-        if m:
-            favicon_url = m.group(1)
-            if not favicon_url.startswith("http"):
-                favicon_url = base_url.rstrip("/") + "/" + favicon_url.lstrip("/")
-            result["favicon_url"] = favicon_url
-            break
-    
-    # Default favicon path
-    if not result["favicon_url"]:
-        result["favicon_url"] = base_url.rstrip("/") + "/favicon.ico"
-    
-    return result
-
-
 def fingerprint_technologies(response_text, response_headers):
     """Detect additional technologies from response.
     

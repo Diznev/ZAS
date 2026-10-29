@@ -4,7 +4,6 @@ Discovers internal hosts, SSH keys, and pivot points.
 """
 
 import re
-import json
 
 
 # ─── Pivot Commands ────────────────────────────────────────────────────────────

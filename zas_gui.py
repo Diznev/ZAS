@@ -7,7 +7,6 @@ ZAS v5.2
 import os
 import sys
 import time
-import shutil
 import threading
 import queue
 import importlib.util
@@ -26,7 +25,7 @@ _base = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_base, "core"))
 sys.path.insert(0, os.path.join(_base, "exploits"))
 
-from core.gui_config import COLORS, get_base_dir, load_config, save_config, classify_exp
+from core.gui_config import COLORS
 from core.gui_export import export_txt, export_json, export_csv, export_sarif, generate_html
 from core.shell_tabs import ShellTabManager
 from core.audit_log import audit_log
@@ -42,11 +41,10 @@ except ImportError:
 # Advanced features
 sys.path.insert(0, os.path.join(_base, "lib"))
 try:
-    from zas_fingerprint import fingerprint_cms, fingerprint_technologies, generate_shodan_query
+    from zas_fingerprint import fingerprint_cms, fingerprint_technologies
     from zas_waf import detect_waf, get_waf_bypass_techniques
     from zas_creds import parse_credential_output, format_creds_report, HARVEST_COMMANDS
     from zas_pivot import parse_pivot_output, generate_pivot_targets, format_pivot_report, PIVOT_COMMANDS
-    from zas_stealth import StealthSession
     from zas_notify import NotificationManager
     HAS_ADVANCED = True
 except ImportError:
@@ -104,7 +102,6 @@ def load_exploits(exploits_dir):
     return exploits
 
 
-
 def normalize_url(url):
     url = url.strip()
     if not url:
@@ -112,52 +109,6 @@ def normalize_url(url):
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
     return url.rstrip("/")
-
-
-
-class CollapsibleFrame(ttk.Frame):
-    """Collapsible frame with expand/collapse toggle."""
-    
-    def __init__(self, parent, text="", expanded=True, **kwargs):
-        super().__init__(parent, **kwargs)
-        self.expanded = expanded
-        self.text = text
-        
-        # Header frame with visible background
-        self.header = tk.Frame(self, bg=COLORS["bg3"], cursor="hand2")
-        self.header.pack(fill="x")
-        self.header.bind("<Button-1>", lambda e: self.toggle())
-        
-        # Arrow indicator
-        self.arrow = tk.Label(self.header, text="▼" if expanded else "▶", 
-                              bg=COLORS["bg3"], fg=COLORS["accent"], 
-                              font=("Consolas", 10, "bold"), width=2)
-        self.arrow.pack(side="left", padx=(6, 2), pady=4)
-        self.arrow.bind("<Button-1>", lambda e: self.toggle())
-        
-        # Title label
-        self.title = tk.Label(self.header, text=text, 
-                              bg=COLORS["bg3"], fg=COLORS["fg"], 
-                              font=("Consolas", 9, "bold"))
-        self.title.pack(side="left", padx=(0, 6), pady=4)
-        self.title.bind("<Button-1>", lambda e: self.toggle())
-        
-        # Content frame
-        self.content = ttk.Frame(self)
-        if expanded:
-            self.content.pack(fill="x", padx=4, pady=(2, 4))
-    
-    def toggle(self):
-        """Toggle expand/collapse."""
-        self.expanded = not self.expanded
-        if self.expanded:
-            self.content.pack(fill="x", padx=4, pady=(2, 4))
-            self.arrow.configure(text="▼")
-        else:
-            self.content.pack_forget()
-            self.arrow.configure(text="▶")
-
-
 class Tooltip:
     def __init__(self, widget, text):
         self.widget = widget
@@ -397,6 +348,7 @@ class ZASApp:
             ("shodan", "🔍  Shodan", None),
             ("notify", "🔔  Notify", None),
             ("shells", "🖥  Shells", None),
+            ("listener", "🌐  Listener", None),
         ]
         for key, label, _ in self._nav_items:
             b = tk.Button(nav, text=label, font=("Consolas", 9), anchor="w",
@@ -422,6 +374,7 @@ class ZASApp:
         self._panels["shodan"] = tk.Frame(main, bg=COLORS["bg"])
         self._panels["notify"] = tk.Frame(main, bg=COLORS["bg"])
         self._panels["shells"] = tk.Frame(main, bg=COLORS["bg"])
+        self._panels["listener"] = tk.Frame(main, bg=COLORS["bg"])
 
         self._build_panel_modules(self._panels["modules"])
         self._build_panel_exploit(self._panels["exploit"])
@@ -429,6 +382,7 @@ class ZASApp:
         self._build_panel_shodan(self._panels["shodan"])
         self._build_panel_notify(self._panels["notify"])
         self._build_panel_shells(self._panels["shells"])
+        self._build_panel_listener(self._panels["listener"])
 
         # Right panel: Output only (always visible)
         self.right_panel = tk.Frame(body, bg=COLORS["bg"], width=360)
@@ -879,6 +833,15 @@ class ZASApp:
         self.payload_file_entry = ttk.Entry(pf, textvariable=self.payload_file_var)
         self.payload_file_entry.pack(side="left", fill="x", expand=True)
         ttk.Button(pf, text="···", command=self._browse_payload, width=3).pack(side="right")
+
+        ttk.Label(left, text="Custom headers", font=("Consolas", 8)).grid(row=6, column=0, sticky="nw", pady=2)
+        hf = ttk.Frame(left)
+        hf.grid(row=6, column=1, sticky="ew", pady=2, padx=(4, 0))
+        self.custom_headers_var = tk.StringVar()
+        self.custom_headers_entry = ttk.Entry(hf, textvariable=self.custom_headers_var)
+        self.custom_headers_entry.pack(side="left", fill="x", expand=True)
+        ttk.Label(hf, text="X-A: b; X-C: d", foreground=COLORS["fg2"],
+                  font=("Consolas", 7)).pack(side="right", padx=(6, 0))
         left.columnconfigure(1, weight=1)
 
         ttk.Label(right, text="Proxy list", font=("Consolas", 8)).grid(row=0, column=0, sticky="w")
@@ -902,8 +865,6 @@ class ZASApp:
         self.cookie_steal_var = tk.BooleanVar(value=False)
         self.cred_harvest_var = tk.BooleanVar(value=False)
         self.pivot_var = tk.BooleanVar(value=False)
-        self.domain_front_var = tk.BooleanVar(value=False)
-        self.req_sign_var = tk.BooleanVar(value=False)
         self.exfiltration_var = tk.BooleanVar(value=False)
 
         items = [
@@ -912,8 +873,6 @@ class ZASApp:
             (self.cookie_steal_var, "Cookie Stealer"),
             (self.cred_harvest_var, "Credential Harvesting"),
             (self.pivot_var, "Pivot / Lateral Movement"),
-            (self.domain_front_var, "Domain Fronting"),
-            (self.req_sign_var, "Request Signing"),
             (self.exfiltration_var, "Exfiltration"),
         ]
         for i, (var, text) in enumerate(items):
@@ -972,6 +931,67 @@ class ZASApp:
     def _show_panel_shells_hint(self):
         pass
 
+    def _build_panel_listener(self, parent):
+        """Reverse-shell listener: payload generator + TCP catcher."""
+        tk.Label(parent, text="Reverse Shell Listener",
+                 font=("Consolas", 12, "bold"),
+                 fg=COLORS["accent"], bg=COLORS["bg"]).pack(anchor="w", pady=(0, 2))
+        tk.Label(parent,
+                 text="Bind a port, then run the generated payload on the target. "
+                      "Only for systems you are authorized to test.",
+                 font=("Segoe UI", 9), fg=COLORS["fg2"],
+                 bg=COLORS["bg"]).pack(anchor="w", padx=2, pady=(0, 6))
+        try:
+            from core.revshell_tab import RevShellPanel
+            self.revshell_panel = RevShellPanel(
+                parent, default_host=self._local_host_guess(),
+                default_port=4444,
+            )
+            self.revshell_panel.pack(fill="both", expand=True)
+        except Exception as e:
+            tk.Label(parent, text="Listener unavailable: %s" % e,
+                     font=("Segoe UI", 9), fg="#f85149",
+                     bg=COLORS["bg"]).pack(anchor="w", padx=2)
+
+    def _local_host_guess(self):
+        """Best-effort address to advertise in generated payloads.
+
+        Prefers a real RFC1918 address. Link-local (169.254/16) and
+        loopback are rejected — a payload aimed at those never reaches
+        back from a target. Falls back to empty so the operator fills it
+        in rather than copying a wrong value.
+        """
+        import ipaddress
+        import socket
+
+        candidates = []
+        try:
+            hostname = socket.gethostname()
+            for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+                candidates.append(info[4][0])
+        except Exception:
+            pass
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("10.255.255.255", 1))
+            candidates.append(s.getsockname()[0])
+            s.close()
+        except Exception:
+            pass
+
+        private, other = [], []
+        for ip in dict.fromkeys(candidates):
+            try:
+                addr = ipaddress.ip_address(ip)
+            except ValueError:
+                continue
+            if addr.is_loopback or addr.is_link_local:
+                continue
+            (private if addr.is_private else other).append(ip)
+        for ip in private + other:
+            return ip
+        return ""
+
     def _build_output(self, parent):
         lf = ttk.LabelFrame(parent, text=" Output ", padding=4)
         lf.pack(fill="both", expand=True)
@@ -994,7 +1014,8 @@ class ZASApp:
         ctrl.pack(fill="x", pady=(4, 0))
         for txt, cmd in [("Clear", self._clear_log), ("Save", self._save_log),
                          ("HTML", self._save_html_report), ("CSV", self._export_csv),
-                         ("SARIF", self._export_sarif), ("Cleanup", self._cleanup_shells)]:
+                         ("SARIF", self._export_sarif), ("PDF", self._export_pdf),
+                         ("Cleanup", self._cleanup_shells)]:
             ttk.Button(ctrl, text=txt, command=cmd, width=7).pack(side="left", padx=(0, 2))
 
     def _build_status(self):
@@ -1077,14 +1098,18 @@ class ZASApp:
         y = self.root.winfo_y() + (event.y - self._drag_y)
         self.root.geometry(f"+{x}+{y}")
 
-    def _add_shell_button(self, shell_url, token, cve, url, mod=None, pseudo=False):
+    def _add_shell_button(self, shell_url, token, cve, url, mod=None, pseudo=False, extra_args=None):
         """Add a [+] button in the log to open a shell tab."""
         def open_shell():
             if pseudo and mod:
                 # Create exploit function for pseudo-shell
+                scan_args = dict(extra_args or {})
                 def exploit_func(cmd):
                     try:
-                        result = mod.exploit(url, cmd=cmd, timeout=15)
+                        args = dict(scan_args)
+                        args["cmd"] = cmd
+                        args["timeout"] = 15
+                        result = mod.exploit(url, **args)
                         return result
                     except Exception as e:
                         return {"ok": False, "reason": str(e)}
@@ -1138,6 +1163,7 @@ class ZASApp:
             self.ignore_ssl_var.set(cfg.get("ignore_ssl", True))
             self.username_var.set(cfg.get("username", ""))
             self.password_var.set(cfg.get("password", ""))
+            self.custom_headers_var.set(cfg.get("custom_headers", ""))
             for name, var in self.module_vars.items():
                 if name in cfg.get("modules", {}):
                     var.set(cfg["modules"][name])
@@ -1169,6 +1195,7 @@ class ZASApp:
             "ignore_ssl": self.ignore_ssl_var.get(),
             "username": self.username_var.get(),
             "password": self.password_var.get(),
+            "custom_headers": self.custom_headers_var.get(),
             "modules": {name: var.get() for name, var in self.module_vars.items()},
         }
         try:
@@ -1393,6 +1420,35 @@ class ZASApp:
             return
         export_sarif(snapshot, path)
         self.log(f"[+] SARIF exported: {path}", "success")
+
+    def _export_pdf(self):
+        with self.results_lock:
+            snapshot = list(self.results_data)
+        if not snapshot:
+            messagebox.showinfo("ZAS", "No results to export. Run a scan first.")
+            return
+        path = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            initialfile=f"zas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+            filetypes=[("PDF", "*.pdf")],
+        )
+        if not path:
+            return
+        scan_info = {
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "targets": len(self.targets),
+            "modules": len([v for v in self.module_vars.values() if v.get()]),
+            "mode": self.mode_var.get(),
+        }
+        try:
+            from lib.zas_pdf_report import generate_pdf_report
+        except ImportError:
+            from zas_pdf_report import generate_pdf_report
+        try:
+            generate_pdf_report(snapshot, scan_info, output_path=path)
+            self.log(f"[+] PDF exported: {path}", "success")
+        except Exception as e:
+            self.log(f"[!] PDF export failed: {e}", "error")
 
     def _auto_save_results(self):
         with self.results_lock:
@@ -1679,6 +1735,8 @@ class ZASApp:
 
         self._save_config()
         _set_ignore_ssl(self.ignore_ssl_var.get())
+        from zas_core import set_custom_headers, parse_header_string
+        set_custom_headers(parse_header_string(self.custom_headers_var.get()))
         self.scanning = True
         audit_path = audit_log.open(self.base_dir)
         if audit_path:
@@ -1776,9 +1834,19 @@ class ZASApp:
 
         extra_args = {}
         if self.username_var.get():
-            extra_args["username"] = self.username_var.get()
+            user = self.username_var.get()
+            # Modules do not agree on a name for this: some read username,
+            # some user, some email, some USERNAME. Pass all of them so a
+            # GUI value reaches the module whichever key it looks for.
+            extra_args["username"] = user
+            extra_args["user"] = user
+            extra_args["email"] = user
+            extra_args["USERNAME"] = user
         if self.password_var.get():
-            extra_args["password"] = self.password_var.get()
+            pw = self.password_var.get()
+            extra_args["password"] = pw
+            extra_args["pass"] = pw
+            extra_args["PASSWORD"] = pw
         if self.cmd_var.get():
             extra_args["cmd"] = self.cmd_var.get()
         if self.payload_url_var.get():
@@ -1964,10 +2032,10 @@ class ZASApp:
                                 shell_url = result.get("shell_url")
                                 if shell_url:
                                     # Real shell - has persistent URL
-                                    self._add_shell_button(shell_url, result.get("token"), cve, url, mod=mod)
+                                    self._add_shell_button(shell_url, result.get("token"), cve, url, mod=mod, extra_args=extra_args)
                                 else:
                                     # Pseudo-shell - re-exploit each command
-                                    self._add_shell_button(url, result.get("token"), cve, url, mod=mod, pseudo=True)
+                                    self._add_shell_button(url, result.get("token"), cve, url, mod=mod, pseudo=True, extra_args=extra_args)
 
                                 with lock:
                                     stats["exploited"] += 1

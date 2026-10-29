@@ -1,8 +1,6 @@
 # ZAS PDF Report Generator
 # Executive summary + detailed findings in PDF format
 
-import json
-import os
 from datetime import datetime
 
 
@@ -18,12 +16,11 @@ def generate_pdf_report(results, scan_info=None, output_path="zas_report.pdf"):
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.units import inch, mm
+        from reportlab.lib.units import mm
         from reportlab.platypus import (
             SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-            PageBreak, HRFlowable
+            HRFlowable
         )
-        from reportlab.lib.enums import TA_CENTER, TA_LEFT
     except ImportError:
         return _generate_html_fallback(results, scan_info, output_path.replace(".pdf", ".html"))
 

@@ -2,9 +2,6 @@
 # High-performance async scanning with connection pooling
 
 import asyncio
-import time
-import random
-from typing import Optional, Dict, Any, List
 
 
 class AsyncScanner:
@@ -158,9 +155,3 @@ async def async_scan(targets, exploits, mode="exploit", max_concurrent=100,
         await scanner.close()
 
 
-def run_async_scan(targets, exploits, mode="exploit", max_concurrent=100,
-                   timeout=15, rate_limit=10.0, extra_args=None):
-    """Synchronous wrapper for async_scan."""
-    return asyncio.run(async_scan(
-        targets, exploits, mode, max_concurrent, timeout, rate_limit, extra_args
-    ))

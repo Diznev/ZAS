@@ -3,14 +3,9 @@ Shell Exploiter Tabs - Integrated into ZAS GUI
 Each tab is an independent shell session with Console, Command, Files, Credentials, Sites.
 """
 
-import os
-import sys
-import re
-import json
 import threading
 import tkinter as tk
 from tkinter import ttk, scrolledtext
-from datetime import datetime
 
 
 class ShellTab:

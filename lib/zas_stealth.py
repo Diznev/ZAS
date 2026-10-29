@@ -8,7 +8,6 @@ import time
 import threading
 import urllib.request
 import ssl
-import json
 
 
 # ─── Domain Fronting ───────────────────────────────────────────────────────────

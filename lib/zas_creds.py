@@ -4,7 +4,6 @@ Targets wp-config.php, .env, database configs, SSH keys, etc.
 """
 
 import re
-import json
 
 
 # ─── Credential Patterns ───────────────────────────────────────────────────────

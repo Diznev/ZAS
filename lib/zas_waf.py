@@ -258,38 +258,3 @@ def get_waf_bypass_techniques(waf_name):
     return bypasses.get(waf_name, ["No known bypasses, try origin IP"])
 
 
-def generate_waf_evasion_headers(waf_name):
-    """Generate headers that may help evade a specific WAF.
-    
-    Returns:
-        dict of headers to add to requests
-    """
-    common = {
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-    }
-    
-    waf_specific = {
-        "cloudflare": {
-            "CF-Connecting-IP": "127.0.0.1",
-            "X-Forwarded-For": "127.0.0.1",
-        },
-        "sucuri": {
-            "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-        },
-        "modsecurity": {
-            "X-Forwarded-For": "127.0.0.1",
-        },
-        "akamai": {
-            "True-Client-IP": "127.0.0.1",
-        },
-    }
-    
-    headers = dict(common)
-    if waf_name in waf_specific:
-        headers.update(waf_specific[waf_name])
-    
-    return headers
