@@ -1,9 +1,11 @@
-# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
 venv/
+.coverage
+coverage.xml
+htmlcov/
 
 # ZAS runtime output — may contain credentials and engagement data
 reports/

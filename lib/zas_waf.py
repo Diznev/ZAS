@@ -131,7 +131,7 @@ def detect_waf(response_text, response_headers, cookies=None, status_code=None):
         "all_detected": [],
     }
     
-    headers_str = "\n".join(f"{k}: {v}" for k, v in response_headers.items()).lower()
+    "\n".join(f"{k}: {v}" for k, v in response_headers.items()).lower()
     body_lower = response_text.lower() if response_text else ""
     cookies_str = " ".join(cookies.keys()).lower() if cookies else ""
     

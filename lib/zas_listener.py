@@ -103,6 +103,12 @@ class ReverseListener:
         # Windows lets two sockets bind the same port when SO_REUSEADDR is
         # set, and then connections reach only one of them. Fail loudly
         # instead: an exclusive bind is what a shell catcher needs.
+        #
+        # Caveat: on Windows an exclusive bind over a port still in
+        # TIME_WAIT can produce a socket that reports success but never
+        # answers SYNs. That only bites rapid stop/start cycles, and the
+        # symptom is obvious (nothing connects) rather than silent — so it
+        # is preferred to the silent double-bind SO_REUSEADDR allows.
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
             s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         else:

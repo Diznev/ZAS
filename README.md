@@ -27,9 +27,14 @@ ZAS/
                                # reverse-shell payloads and listener
 ```
 
-**Included:** 96 modules (94 backed by a CVE, 2 post-exploitation helpers), shell session manager, reverse-shell listener and payload generator, reporting, optional advanced features (fingerprint, WAF, notifications).
+**Included:** 85 modules (83 backed by a CVE, 2 post-exploitation helpers), shell session manager, reverse-shell listener and payload generator, reporting, optional advanced features (fingerprint, WAF, notifications).
 
 Every exploit module is backed by a real, publicly disclosed PoC. See [CHANGELOG.md](CHANGELOG.md) for the source behind each one.
+
+Langflow's twelve RCE chains are served by a single module,
+`other_langflow_rce`, which reads the target version and runs only the
+chains that apply to it. The per-CVE implementations live in `_lf_*`
+siblings that the GUI loader skips.
 
 ---
 
@@ -97,6 +102,26 @@ python zas_gui.py
 - **`zas_config.json` and `reports/`** hold targets, credentials and shell tokens. They are gitignored — treat as sensitive.
 - **Ignore SSL** is for lab targets with invalid certificates; leave it on only if you understand the risk.
 - Cleanup button removes tracked shells/users/templates where possible.
+
+---
+
+## Tests
+
+```bat
+python -m pip install pytest coverage
+python -m pytest tests -m "not slow"     # fast suite (~2 min)
+python -m pytest tests                   # everything, incl. dead-host checks (~15 min)
+python -m pytest tests --cov=exploits --cov=lib --cov=core
+```
+
+The slow suite asserts the honesty rule against every module at once: a dead
+target must never produce `ok=True`. It is marked `slow` because each module
+makes a network round trip.
+
+Coverage of `lib/` and the shared helpers is high (80–96%). Coverage of the
+individual exploit modules is low by nature — their `exploit()` bodies only
+run against a live vulnerable target, which no test suite can fake. See
+[Status and known limitations](#status-and-known-limitations).
 
 ---
 

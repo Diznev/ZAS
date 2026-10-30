@@ -128,6 +128,77 @@ Carried forward deliberately so nobody mistakes a clean load for a working explo
 6. **The reverse-shell listener accepts from anyone** on its bound address.
 7. **CVE attribution can lag the research** — some public PoCs predate their CVE.
 
+---
+
+## Test suite
+
+`tests/` — 1139 tests across 10 files. `pytest` + `coverage` are dev-only
+dependencies; `requirements.txt` stays at runtime scope.
+
+```bat
+python -m pytest tests -m "not slow"    # fast suite (~2 min)
+python -m pytest tests                  # incl. dead-host safety (~15 min)
+```
+
+The slow suite asserts the honesty rule against every module: a dead target
+must never produce `ok=True`. It is marked `slow` because each module makes
+a network round trip.
+
+Coverage of the shared helpers is high — `zas_revshell` 96%, `zas_pdf_report`
+95%, `zas_listener` 92%, `zas_creds` 91%, `zas_fingerprint` 87%, `zas_core`
+80%. Coverage of the individual exploit modules is low by nature: their
+`exploit()` bodies only run against a live vulnerable target, which a test
+suite cannot fake.
+
+### Bugs the tests found
+
+Writing the suite surfaced six real defects, none of which the previous
+checks had caught:
+
+1. **`core/registry.py` shadowed `exploits/registry.py`.** A stale duplicate
+   sat in `core/`; `gui_config.classify_exp` does `from registry import
+   classify`, so depending on `sys.path` order the GUI classified plugins
+   against an out-of-date list. Deleted the duplicate.
+2. **`generate_pivot_targets` crashed** with `AttributeError` — it expected a
+   nested `{category: {cmd: result}}` shape while `parse_pivot_output` returns
+   a flat `{"raw", "parsed"}` dict. Now accepts both.
+3. **Joomla fingerprinting missed the version.** `JOOMLA_VERSION_PATTERNS`
+   only matched the XML manifest `<version>` tag; the meta generator tag —
+   the most common disclosure — was not recognized.
+4. **`validate_shell_response` accepted HTML.** `<html>` and `<!DOCTYPE` were
+   not in the rejected-tag list, so "marker followed by an HTML page" passed
+   as verified execution.
+5. **`_parse_ver` returned `(0, 0, 0)`** for unparseable input instead of
+   `None`, which looked like a valid version.
+6. **`wp_modular_ds_rce` ignored `proxies`** and read `timeout` out of
+   `**kwargs` — the only module not following the shared signature.
+
+Also removed 23 dead assignments and 3 unused imports project-wide.
+
+---
+
+## Langflow consolidated into one module
+
+Twelve Langflow CVEs meant twelve GUI rows for one product. They are now one
+module, `other_langflow_rce`, which reads the target version and runs only
+the chains whose affected range includes it, unauthenticated ones first.
+
+The chain implementations were not touched — they live in `_lf_*` siblings
+that the GUI loader skips, so the code that was verified stays verified.
+`info()` lists every CVE, and the result's `method` field names the chain
+that fired, so the audit trail still identifies the specific vulnerability.
+
+---
+
+## Removed
+
+- **`lib/zas_stealth.py`** — 15.9 KB entirely dead. None of its five classes
+  (`DomainFronting`, `RequestSigner`, `AdaptiveDelays`, `ProxyRotator`,
+  `StealthSession`) were referenced outside the file, and `AdaptiveDelays` /
+  `ProxyRotator` duplicated `zas_core`.
+- **`core/registry.py`** — stale duplicate of `exploits/registry.py` (see
+  the shadowing bug above).
+
 ### Packaging
 
 - Local config, caches and editor/agent state are excluded from git.

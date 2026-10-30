@@ -72,7 +72,7 @@ def export_sarif(results, path):
 def generate_html(data, scan_info):
     vuln_count = sum(1 for r in data if r["status"] == "vulnerable")
     expl_count = sum(1 for r in data if r["status"] == "exploited")
-    installed_count = sum(1 for r in data if r["status"] == "installed")
+    sum(1 for r in data if r["status"] == "installed")
     total_targets = scan_info.get("targets", 0)
     total_modules = scan_info.get("modules", 0)
     mode = scan_info.get("mode", "exploit")

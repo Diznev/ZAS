@@ -1347,7 +1347,7 @@ class ZASApp:
         has_password = "password" in all_tags
 
         # Check if any selected module is WordPress
-        has_wp = any(self._classify_exp(exp) == "wordpress" for exp in selected_exploits)
+        any(self._classify_exp(exp) == "wordpress" for exp in selected_exploits)
 
         self.username_entry.configure(state="normal" if has_sel and has_username else "disabled")
         self.password_entry.configure(state="normal" if has_sel and has_password else "disabled")
@@ -2125,7 +2125,7 @@ class ZASApp:
             self.scanning = False
             self.pause_event.set()
 
-        still_alive = sum(1 for w in workers if w.is_alive())
+        sum(1 for w in workers if w.is_alive())
         status = "stopped" if not self.scanning else "done"
 
         self.log("", "info")
