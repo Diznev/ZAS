@@ -37,7 +37,10 @@ class ShodanAPI:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "ZAS/5.1"})
             resp = urllib.request.urlopen(req, timeout=30, context=ctx)
-            return json.loads(resp.read().decode())
+            try:
+                return json.loads(resp.read().decode())
+            finally:
+                resp.close()
         except urllib.error.HTTPError as e:
             return {"error": f"HTTP {e.code}: {e.reason}"}
         except Exception as e:

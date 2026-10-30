@@ -77,6 +77,8 @@ WP_VERSION_PATTERNS = [
 
 # Joomla version patterns
 JOOMLA_VERSION_PATTERNS = [
+    # meta generator: content="Joomla! - Open Source Content Management - Version 3.9.20"
+    r'<meta[^>]+content="Joomla![^"]*Version\s+([\d.]+)',
     r'<version>([\d.]+)</version>',
     r'Joomla!\s+([\d.]+)',
     r'/media/jui/js/.*\?ver=([\d.]+)',

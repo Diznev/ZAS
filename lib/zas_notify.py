@@ -74,7 +74,10 @@ class TelegramNotifier:
                 "User-Agent": "ZAS/5.1",
             })
             resp = _urlopen(req, timeout=15)
-            result = json.loads(resp.read().decode())
+            try:
+                result = json.loads(resp.read().decode())
+            finally:
+                resp.close()
             return {"ok": True, "message_id": result.get("result", {}).get("message_id")}
         except Exception as e:
             return {"ok": False, "error": str(e)}
@@ -173,7 +176,7 @@ class SlackNotifier:
                 data=json.dumps(data).encode(),
                 headers={"Content-Type": "application/json"},
             )
-            resp = _urlopen(req, timeout=15)
+            _urlopen(req, timeout=15).close()
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "error": str(e)}
@@ -214,7 +217,7 @@ class SlackNotifier:
                 data=json.dumps(data).encode(),
                 headers={"Content-Type": "application/json"},
             )
-            resp = _urlopen(req, timeout=15)
+            _urlopen(req, timeout=15).close()
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "error": str(e)}
@@ -250,7 +253,7 @@ class DiscordNotifier:
                 data=json.dumps(data).encode(),
                 headers={"Content-Type": "application/json"},
             )
-            resp = _urlopen(req, timeout=15)
+            _urlopen(req, timeout=15).close()
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "error": str(e)}
@@ -280,7 +283,7 @@ class DiscordNotifier:
                 data=json.dumps(data).encode(),
                 headers={"Content-Type": "application/json"},
             )
-            resp = _urlopen(req, timeout=15)
+            _urlopen(req, timeout=15).close()
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "error": str(e)}

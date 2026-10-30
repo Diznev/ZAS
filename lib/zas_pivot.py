@@ -144,60 +144,53 @@ def generate_pivot_targets(pivot_results):
     """
     targets = []
     seen = set()
-    
-    for category, commands in pivot_results.items():
+
+    def _absorb(items, source):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            t = item.get("type")
+            if t == "internal_ip":
+                ip = item["ip"]
+                if ip not in seen and ip != "127.0.0.1":
+                    seen.add(ip)
+                    targets.append({"ip": ip, "port": None, "type": "internal_host",
+                                    "confidence": "high", "source": source})
+            elif t == "arp_entry":
+                ip = item["ip"]
+                if ip not in seen:
+                    seen.add(ip)
+                    targets.append({"ip": ip, "port": None, "type": "arp_host",
+                                    "confidence": "medium", "source": source})
+            elif t == "listening_port":
+                ip = item.get("ip", "0.0.0.0")
+                port = item["port"]
+                key = f"{ip}:{port}"
+                if key not in seen:
+                    seen.add(key)
+                    targets.append({"ip": ip, "port": port, "type": "service",
+                                    "confidence": "high", "source": source})
+            elif t == "known_host":
+                host = item["host"]
+                if host not in seen:
+                    seen.add(host)
+                    targets.append({"ip": host, "port": None, "type": "known_host",
+                                    "confidence": "medium", "source": source})
+
+    # Accept both shapes: the nested {category: {cmd: result}} form and the
+    # flat {"raw", "parsed"} dict that parse_pivot_output() returns.
+    if isinstance(pivot_results, dict) and "parsed" in pivot_results:
+        _absorb(pivot_results.get("parsed") or [], "pivot")
+        return targets
+
+    for category, commands in (pivot_results or {}).items():
+        if not isinstance(commands, dict):
+            continue
         for cmd_name, result in commands.items():
-            for item in result.get("parsed", []):
-                if item.get("type") == "internal_ip":
-                    ip = item["ip"]
-                    if ip not in seen and ip != "127.0.0.1":
-                        seen.add(ip)
-                        targets.append({
-                            "ip": ip,
-                            "port": None,
-                            "type": "internal_host",
-                            "confidence": "high",
-                            "source": f"{category}/{cmd_name}",
-                        })
-                
-                elif item.get("type") == "arp_entry":
-                    ip = item["ip"]
-                    if ip not in seen:
-                        seen.add(ip)
-                        targets.append({
-                            "ip": ip,
-                            "port": None,
-                            "type": "arp_host",
-                            "confidence": "medium",
-                            "source": f"{category}/{cmd_name}",
-                        })
-                
-                elif item.get("type") == "listening_port":
-                    ip = item.get("ip", "0.0.0.0")
-                    port = item["port"]
-                    key = f"{ip}:{port}"
-                    if key not in seen:
-                        seen.add(key)
-                        targets.append({
-                            "ip": ip,
-                            "port": port,
-                            "type": "service",
-                            "confidence": "high",
-                            "source": f"{category}/{cmd_name}",
-                        })
-                
-                elif item.get("type") == "known_host":
-                    host = item["host"]
-                    if host not in seen:
-                        seen.add(host)
-                        targets.append({
-                            "ip": host,
-                            "port": None,
-                            "type": "known_host",
-                            "confidence": "medium",
-                            "source": f"{category}/{cmd_name}",
-                        })
-    
+            if not isinstance(result, dict):
+                continue
+            _absorb(result.get("parsed") or [], f"{category}/{cmd_name}")
+
     return targets
 
 
