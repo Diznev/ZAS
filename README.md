@@ -105,26 +105,6 @@ python zas_gui.py
 
 ---
 
-## Tests
-
-```bat
-python -m pip install pytest coverage
-python -m pytest tests -m "not slow"     # fast suite (~2 min)
-python -m pytest tests                   # everything, incl. dead-host checks (~15 min)
-python -m pytest tests --cov=exploits --cov=lib --cov=core
-```
-
-The slow suite asserts the honesty rule against every module at once: a dead
-target must never produce `ok=True`. It is marked `slow` because each module
-makes a network round trip.
-
-Coverage of `lib/` and the shared helpers is high (80–96%). Coverage of the
-individual exploit modules is low by nature — their `exploit()` bodies only
-run against a live vulnerable target, which no test suite can fake. See
-[Status and known limitations](#status-and-known-limitations).
-
----
-
 ## Status and known limitations
 
 **This project is in active development.** The code is functional and the module collection is curated, but the following is either unverified, partial, or knowingly imperfect. Read it before a live engagement.

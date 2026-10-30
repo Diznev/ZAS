@@ -25,3 +25,6 @@ zas_config.json
 # Internal working notes (not part of the distribution)
 docs/_*.md
 docs/*-integration.md
+
+# Test suite — kept locally, not shipped
+tests/

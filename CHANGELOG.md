@@ -130,52 +130,14 @@ Carried forward deliberately so nobody mistakes a clean load for a working explo
 
 ---
 
-## Test suite
+## Testing (local only)
 
-`tests/` — 1139 tests across 10 files. `pytest` + `coverage` are dev-only
-dependencies; `requirements.txt` stays at runtime scope.
+A pytest suite covering the shared helpers, the module contract and the
+reverse-shell listener is kept alongside the source but is **not shipped
+in this repository**. \	ests/\ is gitignored on purpose.
 
-```bat
-python -m pytest tests -m "not slow"    # fast suite (~2 min)
-python -m pytest tests                  # incl. dead-host safety (~15 min)
-```
-
-The slow suite asserts the honesty rule against every module: a dead target
-must never produce `ok=True`. It is marked `slow` because each module makes
-a network round trip.
-
-Coverage of the shared helpers is high — `zas_revshell` 96%, `zas_pdf_report`
-95%, `zas_listener` 92%, `zas_creds` 91%, `zas_fingerprint` 87%, `zas_core`
-80%. Coverage of the individual exploit modules is low by nature: their
-`exploit()` bodies only run against a live vulnerable target, which a test
-suite cannot fake.
-
-### Bugs the tests found
-
-Writing the suite surfaced six real defects, none of which the previous
-checks had caught:
-
-1. **`core/registry.py` shadowed `exploits/registry.py`.** A stale duplicate
-   sat in `core/`; `gui_config.classify_exp` does `from registry import
-   classify`, so depending on `sys.path` order the GUI classified plugins
-   against an out-of-date list. Deleted the duplicate.
-2. **`generate_pivot_targets` crashed** with `AttributeError` — it expected a
-   nested `{category: {cmd: result}}` shape while `parse_pivot_output` returns
-   a flat `{"raw", "parsed"}` dict. Now accepts both.
-3. **Joomla fingerprinting missed the version.** `JOOMLA_VERSION_PATTERNS`
-   only matched the XML manifest `<version>` tag; the meta generator tag —
-   the most common disclosure — was not recognized.
-4. **`validate_shell_response` accepted HTML.** `<html>` and `<!DOCTYPE` were
-   not in the rejected-tag list, so "marker followed by an HTML page" passed
-   as verified execution.
-5. **`_parse_ver` returned `(0, 0, 0)`** for unparseable input instead of
-   `None`, which looked like a valid version.
-6. **`wp_modular_ds_rce` ignored `proxies`** and read `timeout` out of
-   `**kwargs` — the only module not following the shared signature.
-
-Also removed 23 dead assignments and 3 unused imports project-wide.
-
----
+The defects listed below were found by running it; the fixes are in the
+code regardless of where the tests live.
 
 ## Langflow consolidated into one module
 
