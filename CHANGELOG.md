@@ -5,6 +5,43 @@ All notable changes to ZAS. The project is under active development — read
 
 ---
 
+## Unreleased
+
+### Added — 6 modules sourced from three public PoC indexes
+
+Candidates were taken from `0xMarcio/pocindex`, `trickest/cve` 2026 and
+`nomi-sec/PoC-in-GitHub` 2026, filtered to web products with an explicit
+code-execution mechanic and a public PoC, then implemented against the
+upstream PoC source itself.
+
+| CVE | Module | Product | Chain |
+|---|---|---|---|
+| CVE-2025-3248 | `_lf_3248_validate_code` (via `other_langflow_rce`) | Langflow < 1.3.0 | unauthenticated `validate/code` `@exec()` |
+| CVE-2025-68613 | `other_n8n_expression_rce` | n8n 0.211.0-1.120.3 / 1.121.0 | authenticated Set-node expression → `child_process` |
+| CVE-2026-60004 | `other_gitea_diffpatch_rce` | Gitea 1.17-1.27.0 | `diffpatch` double-send → `-3` fallback → git hook |
+| CVE-2026-58138 | `other_conductor_inline_rce` | Conductor 3.21.21-3.30.1 | unauthenticated INLINE javascript → `Runtime.exec` |
+| CVE-2026-47668 | `other_dbgate_runners_rce` | DBGate <= 7.1.8 | unauthenticated `runners/start` assign-command → `child_process` |
+| CVE-2026-6279 | `wp_avada_builder_rce` | Avada Builder <= 3.15.2 | unauthenticated `call_user_func()` via `render_logics` |
+
+CVE-2025-3248 is the unauthenticated predecessor of the Langflow
+`validate/code` chains already in the collection; it is the missing lower
+half of that version range and is dispatched by `other_langflow_rce` like
+the other twelve. The Langflow facade now covers thirteen CVEs.
+
+CVE-2025-3248 and CVE-2026-58138 both read back a response that can echo
+the submitted code or workflow definition. The execution marker is
+assembled at runtime from two fragments in those modules, so a reply that
+only reflects the request cannot satisfy the verification check.
+
+`other_gitea_diffpatch_rce` does not follow the upstream PoC's reverse
+shell: this collection only reports `ok=True` against real command output.
+The hook instead posts the output to Gitea's own contents API and the
+module verifies against that file. Where no `curl`/`wget` is available in
+the hook environment the command runs but the module reports `ok=False`
+naming that reason.
+
+---
+
 ## ZAS v5.2 — 2026-10-29
 
 Major cleanup of the module collection: every module now has to be backed by a real,
@@ -141,7 +178,7 @@ code regardless of where the tests live.
 
 ## Langflow consolidated into one module
 
-Twelve Langflow CVEs meant twelve GUI rows for one product. They are now one
+Thirteen Langflow CVEs meant thirteen GUI rows for one product. They are now one
 module, `other_langflow_rce`, which reads the target version and runs only
 the chains whose affected range includes it, unauthenticated ones first.
 

@@ -27,11 +27,11 @@ ZAS/
                                # reverse-shell payloads and listener
 ```
 
-**Included:** 85 modules (83 backed by a CVE, 2 post-exploitation helpers), shell session manager, reverse-shell listener and payload generator, reporting, optional advanced features (fingerprint, WAF, notifications).
+**Included:** 90 modules (88 backed by a CVE, 2 post-exploitation helpers), shell session manager, reverse-shell listener and payload generator, reporting, optional advanced features (fingerprint, WAF, notifications).
 
 Every exploit module is backed by a real, publicly disclosed PoC. See [CHANGELOG.md](CHANGELOG.md) for the source behind each one.
 
-Langflow's twelve RCE chains are served by a single module,
+Langflow's thirteen RCE chains are served by a single module,
 `other_langflow_rce`, which reads the target version and runs only the
 chains that apply to it. The per-CVE implementations live in `_lf_*`
 siblings that the GUI loader skips.
@@ -119,10 +119,11 @@ Two modules always return `ok=False`, and that is deliberate:
 
 - **`other_netscaler_preauth_rce`** (CVE-2026-88771) — no public PoC has a synchronous verification channel. The upstream waits up to 24 hours for an agent to connect and delivers via reverse shell. The module plants the stage and reports honestly; you must confirm out-of-band.
 - **`other_langflow_93674_cmdinj`** (CVE-2026-93674) — blind command injection upstream. Same situation.
+- **`other_gitea_diffpatch_rce`** (CVE-2026-60004) — the git hook runs the command, but the upstream PoC only recovers output through a reverse shell. This module has the hook post the output back through Gitea's own contents API and verifies against that; when neither `curl` nor `wget` exists in the hook environment the command still runs and the module reports `ok=False` saying there is no in-band channel.
 
 ### Requires credentials or specific preconditions
 
-Authenticated modules (`other_ghostcms_rce`, the five authenticated Langflow modules, `other_n8n_expr_rce`, `wp_funnelkit_plugin_install`) return `ok=False` naming the missing credential when none is supplied. Others need a specific configuration to be reachable at all — for example `wp_forminator_upload_rce` needs a published form with both an upload and a select field, `wp_blocksy_fonts_rce` needs Blocksy Pro plus two extensions, `wp_core_pagetemplate_lfi_rce` needs a theme with a top-level `page-*` directory. The module says which gate failed.
+Authenticated modules (`other_ghostcms_rce`, the five authenticated Langflow modules, `other_n8n_expression_rce`, `other_gitea_diffpatch_rce`, `wp_funnelkit_plugin_install`) return `ok=False` naming the missing credential when none is supplied. Others need a specific configuration to be reachable at all — for example `wp_forminator_upload_rce` needs a published form with both an upload and a select field, `wp_blocksy_fonts_rce` needs Blocksy Pro plus two extensions, `wp_core_pagetemplate_lfi_rce` needs a theme with a top-level `page-*` directory. The module says which gate failed.
 
 ### Side effects on the target
 

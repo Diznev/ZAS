@@ -335,7 +335,7 @@ class EmailNotifier:
         """Send vulnerability alert email."""
         subject = f"[ZAS] {status.upper()}: {cve} @ {url}"
         
-        message = f"ZAS Alert\n\n"
+        message = "ZAS Alert\n\n"
         message += f"CVE: {cve}\n"
         message += f"URL: {url}\n"
         message += f"Status: {status.upper()}\n"
