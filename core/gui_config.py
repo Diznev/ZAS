@@ -32,6 +32,44 @@ COLORS = {
 }
 
 
+def configure_input_styles(root, style):
+    """Keep normal, readonly, selected and popup input text legible in clam."""
+    for name in ("TEntry", "TCombobox"):
+        style.configure(name, foreground=COLORS["fg"], fieldbackground=COLORS["bg2"],
+                        background=COLORS["bg3"], bordercolor=COLORS["border"],
+                        insertcolor=COLORS["fg"], selectbackground=COLORS["accent"],
+                        selectforeground=COLORS["primaryFg"], padding=(6, 4))
+        style.map(name,
+                  foreground=[("disabled", COLORS["fg3"]), ("!disabled", COLORS["fg"])],
+                  fieldbackground=[("disabled", COLORS["bg4"]), ("readonly", COLORS["bg2"])],
+                  selectbackground=[("disabled", COLORS["bg4"]), ("!disabled", COLORS["accent"])],
+                  selectforeground=[("disabled", COLORS["fg3"]), ("!disabled", COLORS["primaryFg"])],
+                  bordercolor=[("focus", COLORS["accent"]), ("!focus", COLORS["border"])])
+    style.configure("TCombobox", arrowcolor=COLORS["accent"], arrowsize=14)
+    style.map("TCombobox",
+              background=[("disabled", COLORS["bg4"]), ("!disabled", COLORS["bg3"])],
+              arrowcolor=[("disabled", COLORS["fg3"]), ("!disabled", COLORS["accent"])])
+    # The expanded list is a Tk Listbox, not part of the ttk field style.
+    for option, value in {
+        "background": COLORS["bg2"], "foreground": COLORS["fg"],
+        "selectBackground": COLORS["accent"], "selectForeground": COLORS["primaryFg"],
+        "selectBorderWidth": 0, "font": ("Segoe UI", 10), "activeStyle": "none",
+    }.items():
+        root.option_add("*TCombobox*Listbox." + option, value)
+    style.map("TButton", background=[("disabled", COLORS["bg4"]),
+                                      ("pressed", COLORS["accent2"]),
+                                      ("active", COLORS["accent"])],
+              foreground=[("disabled", COLORS["fg3"]),
+                                      ("pressed", COLORS["primaryFg"]),
+                                      ("active", COLORS["primaryFg"])])
+    style.configure("Treeview", background=COLORS["bg2"], fieldbackground=COLORS["bg2"], foreground=COLORS["fg"])
+    style.map("Treeview", background=[("disabled", COLORS["bg4"]), ("selected", COLORS["accent"])],
+              foreground=[("disabled", COLORS["fg3"]), ("selected", COLORS["primaryFg"])])
+    style.configure("Treeview.Heading", background=COLORS["bg3"], foreground=COLORS["fg"])
+    style.map("Treeview.Heading", background=[("active", COLORS["bg3"]), ("pressed", COLORS["bg3"])],
+              foreground=[("active", COLORS["fg"]), ("pressed", COLORS["fg"])])
+
+
 def get_base_dir():
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)

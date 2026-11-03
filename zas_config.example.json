@@ -12,6 +12,20 @@
   "ignore_ssl": true,
   "username": "",
   "password": "",
+  "advanced": {
+    "fingerprint": false,
+    "waf_detect": false,
+    "cookie_steal": false,
+    "cred_harvest": false,
+    "pivot": false,
+    "exfiltration": false,
+    "shodan_key": "",
+    "shodan_query": "",
+    "tg_token": "",
+    "tg_chat": "",
+    "slack_webhook": "",
+    "discord_webhook": ""
+  },
   "modules": {
     "avideo_clone_rce": true,
     "bookingpress_sqli": false,

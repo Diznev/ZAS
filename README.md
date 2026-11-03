@@ -77,6 +77,35 @@ python zas_gui.py
 7. **Shells** — left menu; successful exploits open sessions (badge count appears there).
 8. **Listener** — bind a port and generate a reverse-shell payload to run on the target.
 9. Export from Output: **HTML / CSV / SARIF / PDF / Save**.
+10. **Compare reports** — select a previous and a current ZAS JSON export, then
+    compare new, repeated and not reconfirmed findings. Search/filter the table
+    or save the complete comparison as HTML. Missing findings are not proof of
+    remediation. Comparison is offline; command output, cookies and tokens from
+    result details are omitted, and URL credentials/query values are hidden.
+11. **Target history** — view target cards and a timeline reconstructed from
+    saved `zas_results_*.json` reports. Select a target to inspect CVEs, statuses
+    and methods, or compare its two latest reports with that target's scope.
+    Refresh or choose a different report directory as needed. History reads the
+    selected directory and its immediate subdirectories, up to 200 reports,
+    100,000 records and 64 MiB in total. Limits and unreadable files are shown.
+    Dates are file modification times in UTC, not verified scan timestamps.
+12. **CVE candidates** — keep a local research queue with product, claimed CVE,
+    affected versions, prerequisites, PoC/advisory links, source revision and
+    review notes. Add/edit entries, filter their workflow stage, import/export
+    catalogue JSON, and open references in your browser. CVE claims remain
+    unverified until independently checked; this queue does not install or run
+    PoCs. Local data is stored in `reports/research/candidates.json` and is
+    excluded from Git. Conflicting imports or stale saves preserve existing data.
+    **Fetch advisories** retrieves public GHSA/NVD metadata into a preview.
+    Choose a source and enter a CVE ID; GHSA also accepts an exact package name
+    (blank lists recent updates), while NVD accepts keywords. Review version
+    claims, references, existing module coverage and catalog duplicates, then
+    choose **Add selected**. Fetching alone does not save anything. **Select new**
+    skips module matches; you can explicitly select them for further research.
+    Only the first page is fetched: up to 20 advisories and 40 cards. NVD requests
+    have a 30-second local cooldown; provider rate limits are shown without
+    automatic retries. An NVD `Exploit` reference tag is unverified source metadata,
+    not evidence that a PoC works. Reference pages and code are not downloaded.
 
 **Hotkeys:** `F5` start · `F6` pause · `F7` stop · `Ctrl+S` save log · `Ctrl+O` open targets.
 
@@ -84,10 +113,14 @@ python zas_gui.py
 
 ## UI overview
 
+The application UI is English, including filters, editor dialogs, tooltips,
+status messages and validation errors. Operator-entered notes and report data
+retain their original text.
+
 | Zone | Purpose |
 |------|---------|
 | **Top bar** | Target, mode (Exploit), START / PAUSE / STOP, scan settings |
-| **Left menu** | Modules, Exploit, Advanced, Shodan, Notify, Shells, **Listener** |
+| **Left menu** | Modules, Exploit, **Advanced** (options, Shodan search and notifications), Shells, **Listener**, **Compare reports**, **Target history**, **CVE candidates** |
 | **Main** | Module table (search, filters, severity badges, `?` details) |
 | **Right** | Output log + export buttons |
 
@@ -95,9 +128,17 @@ python zas_gui.py
 
 ## Notes
 
+- **Advanced settings:** **Apply** activates the form for the current session;
+  **Save settings** also stores it in the local `advanced` configuration
+  section and restores it on restart. Editing a field does not activate it.
+  Automatic scan-config saving keeps the previously saved Advanced values.
+  Apply/save is unavailable during an active scan; each scan uses its own settings
+  snapshot. Shodan uses the applied API key and the current Query search input.
+  Stored API keys and notification tokens are part of the sensitive local config.
+
 - **Exploit is the only mode.** Modules implement `info()` + `exploit()`; there is no passive detection stage.
 - **A module only ships if a real public PoC backs it.** If a working chain cannot be derived from the public source, the module returns `ok=False` with a precise reason rather than inventing a request shape.
-- **`ok=True` means execution was confirmed** — command output verified by marker. An HTTP status code alone is never treated as proof.
+- **Intended contract:** `ok=True` requires verified command output; an HTTP status alone is insufficient. A local review found legacy paths that violate this contract, including `wp_filemanager_rce` reporting success after a command request fails and `other_phpmyadmin_rce` reporting file-read evidence as success. Review module-specific evidence before treating a result as confirmed execution.
 - **Custom headers** are applied to every request the tool makes. Set them per engagement; clear them afterwards, or one target's header will leak into the next scan.
 - **`zas_config.json` and `reports/`** hold targets, credentials and shell tokens. They are gitignored — treat as sensitive.
 - **Ignore SSL** is for lab targets with invalid certificates; leave it on only if you understand the risk.

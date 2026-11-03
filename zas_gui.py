@@ -25,10 +25,11 @@ _base = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_base, "core"))
 sys.path.insert(0, os.path.join(_base, "exploits"))
 
-from core.gui_config import COLORS
+from core.gui_config import COLORS, configure_input_styles
 from core.gui_export import export_txt, export_json, export_csv, export_sarif, generate_html
 from core.shell_tabs import ShellTabManager
 from core.audit_log import audit_log
+from core.advanced_settings import ADVANCED_DEFAULTS, normalize_advanced_settings, update_local_config
 
 try:
     from zas_core import get_verify as _get_ssl_verify, set_ignore_ssl as _set_ignore_ssl
@@ -183,6 +184,8 @@ class ZASApp:
         self.root.bind("<Escape>", lambda e: self._close())
 
     def _build_ui(self):
+        self.root.tk.call("package", "require", "msgcat")
+        self.root.tk.call("::msgcat::mclocale", "en")
         s = ttk.Style()
         s.theme_use("clam")
         s.configure(".", background=COLORS["bg"], foreground=COLORS["fg"],
@@ -202,6 +205,7 @@ class ZASApp:
         s.map("Nav.TButton",
               background=[("active", COLORS["bg4"]), ("selected", COLORS["bg4"])],
               foreground=[("active", COLORS["accent"]), ("selected", COLORS["accent"])])
+        configure_input_styles(self.root, s)
 
         # ── Title bar ──
         title_bar = tk.Frame(self.root, bg=COLORS["bg4"], height=32)
@@ -345,10 +349,11 @@ class ZASApp:
             ("modules", "▦  Modules", self._module_count_label),
             ("exploit", "⚡  Exploit", None),
             ("advanced", "🔧  Advanced", None),
-            ("shodan", "🔍  Shodan", None),
-            ("notify", "🔔  Notify", None),
             ("shells", "🖥  Shells", None),
             ("listener", "🌐  Listener", None),
+            ("compare", "↔  Compare reports", None),
+            ("history", "◷  Target history", None),
+            ("candidates", "◇  CVE candidates", None),
         ]
         for key, label, _ in self._nav_items:
             b = tk.Button(nav, text=label, font=("Consolas", 9), anchor="w",
@@ -371,18 +376,33 @@ class ZASApp:
         self._panels["modules"] = tk.Frame(main, bg=COLORS["bg"])
         self._panels["exploit"] = tk.Frame(main, bg=COLORS["bg"])
         self._panels["advanced"] = tk.Frame(main, bg=COLORS["bg"])
-        self._panels["shodan"] = tk.Frame(main, bg=COLORS["bg"])
-        self._panels["notify"] = tk.Frame(main, bg=COLORS["bg"])
         self._panels["shells"] = tk.Frame(main, bg=COLORS["bg"])
         self._panels["listener"] = tk.Frame(main, bg=COLORS["bg"])
+        self._panels["compare"] = tk.Frame(main, bg=COLORS["bg"])
+        self._panels["history"] = tk.Frame(main, bg=COLORS["bg"])
+        self._panels["candidates"] = tk.Frame(main, bg=COLORS["bg"])
 
         self._build_panel_modules(self._panels["modules"])
         self._build_panel_exploit(self._panels["exploit"])
         self._build_panel_advanced(self._panels["advanced"])
-        self._build_panel_shodan(self._panels["shodan"])
-        self._build_panel_notify(self._panels["notify"])
         self._build_panel_shells(self._panels["shells"])
         self._build_panel_listener(self._panels["listener"])
+        from core.compare_panel import ReportComparisonPanel
+        self.comparison_panel = ReportComparisonPanel(
+            self._panels["compare"], os.path.join(self.base_dir, "reports"),
+        )
+        self.comparison_panel.pack(fill="both", expand=True)
+        from core.history_panel import TargetHistoryPanel
+        self.history_panel = TargetHistoryPanel(
+            self._panels["history"], os.path.join(self.base_dir, "reports"), self._compare_history_reports,
+        )
+        self.history_panel.pack(fill="both", expand=True)
+        from core.candidate_panel import CandidateCatalogPanel
+        self.candidate_panel = CandidateCatalogPanel(
+            self._panels["candidates"], os.path.join(self.base_dir, "reports", "research", "candidates.json"),
+            modules=self.exploits,
+        )
+        self.candidate_panel.pack(fill="both", expand=True)
 
         # Right panel: Output only (always visible)
         self.right_panel = tk.Frame(body, bg=COLORS["bg"], width=360)
@@ -416,6 +436,14 @@ class ZASApp:
                 btn.configure(bg=COLORS["bg4"], fg=COLORS["fg"])
         if key == "shells":
             self._update_shells_nav_badge()
+        if key == "history":
+            self.history_panel.refresh()
+        if key == "candidates":
+            self.candidate_panel.refresh()
+
+    def _compare_history_reports(self, baseline, current, target_id, target_label):
+        self._show_panel("compare")
+        self.comparison_panel.set_reports(baseline, current, target_id, target_label)
 
     def _show_target_history(self):
         hist_path = os.path.join(self.base_dir, "reports", "targets_history.txt")
@@ -466,7 +494,7 @@ class ZASApp:
                           font=("Consolas", 9), bg=COLORS["bg2"], fg=COLORS["fg"],
                           insertbackground=COLORS["accent"], relief="flat")
         search.pack(side="left", padx=(0, 8))
-        Tooltip(search, "Поиск по CVE, названию, описанию…")
+        Tooltip(search, "Search by CVE, name or description...")
 
         self._filter_buttons = {}
         self._filter_chip_colors = {
@@ -478,7 +506,7 @@ class ZASApp:
             "selected_only": COLORS["accent"],
         }
         for key, label in [("crit", "CRIT"), ("high", "HIGH"), ("wordpress", "WordPress"),
-                           ("joomla", "Joomla"), ("other", "Other"), ("selected_only", "Только выбранные")]:
+                           ("joomla", "Joomla"), ("other", "Other"), ("selected_only", "Selected only")]:
             b = tk.Button(tools, text=label, font=("Consolas", 8, "bold"), relief="flat",
                           bg=COLORS["bg3"], fg=COLORS["fg2"], activebackground=COLORS["bg3"],
                           activeforeground=COLORS["accent"], padx=8, pady=3, bd=0,
@@ -486,12 +514,12 @@ class ZASApp:
             b.pack(side="left", padx=2, pady=3)
             self._filter_buttons[key] = b
 
-        self._reset_btn = tk.Button(tools, text="Сбросить фильтры", font=("Consolas", 8, "bold"),
+        self._reset_btn = tk.Button(tools, text="Reset filters", font=("Consolas", 8, "bold"),
                                     relief="flat", bg=COLORS["bg3"], fg=COLORS["fg3"],
                                     command=self._reset_filters, padx=8, pady=3)
         self._reset_btn.pack(side="left", padx=6, pady=3)
 
-        self._selected_label = tk.Label(tools, text="Выбрано: 0", font=("Consolas", 10, "bold"),
+        self._selected_label = tk.Label(tools, text="Selected: 0", font=("Consolas", 10, "bold"),
                                         bg=COLORS["bg4"], fg=COLORS["accent"])
         self._selected_label.pack(side="right", padx=(4, 8))
         for txt, cmd in [("All", self._select_all), ("None", self._deselect_all),
@@ -525,7 +553,7 @@ class ZASApp:
         _hdr("cve", "CVE ⇅", "cve")
         _hdr("severity", "Severity ⇅", "severity")
         _hdr("cms", "CMS ⇅", "cms")
-        _hdr("desc", "Описание", "desc")
+        _hdr("desc", "Description", "desc")
         _hdr("info", "Info", "info")
 
         body = tk.Frame(table_wrap, bg=COLORS["bg"])
@@ -557,7 +585,7 @@ class ZASApp:
         # ── footer ──
         foot = tk.Frame(parent, bg=COLORS["bg"])
         foot.pack(fill="x", pady=(6, 0))
-        self._table_info = tk.Label(foot, text="Показано 0 из 0", font=("Consolas", 9, "bold"),
+        self._table_info = tk.Label(foot, text="Showing 0 of 0", font=("Consolas", 9, "bold"),
                                     bg=COLORS["bg"], fg=COLORS["fg2"])
         self._table_info.pack(side="left", padx=4)
         self._empty_label = tk.Label(foot, text="", font=("Segoe UI", 9, "italic"),
@@ -702,7 +730,7 @@ class ZASApp:
         cms_label = {"wordpress": "WordPress", "joomla": "Joomla", "other": "Other"}
 
         if not rows:
-            self._empty_label.configure(text="Ничего не найдено")
+            self._empty_label.configure(text="No matching modules")
         else:
             self._empty_label.configure(text="")
 
@@ -742,7 +770,7 @@ class ZASApp:
                                 cursor="hand2", relief="solid", bd=1, width=3)
             info_btn.pack(side="right", padx=8)
             info_btn.bind("<Button-1>", lambda e, n=r["name"]: self._show_module_details(n))
-            Tooltip(info_btn, "Детали модуля")
+            Tooltip(info_btn, "Module details")
 
             row.bind("<Button-1>", lambda e, n=r["name"]: self._toggle_row(n))
             for w in (desc_lbl, badge):
@@ -751,9 +779,9 @@ class ZASApp:
 
             self._row_widgets[r["name"]] = row
 
-        self._table_info.configure(text=f"Показано {len(rows)} из {len(self._module_rows)}")
+        self._table_info.configure(text=f"Showing {len(rows)} of {len(self._module_rows)}")
         n = sum(1 for x in self._module_rows if x["var"].get())
-        self._selected_label.configure(text=f"Выбрано: {n}")
+        self._selected_label.configure(text=f"Selected: {n}")
         self._nav_badge.configure(text=f"{n}/{len(self.module_vars)} selected")
         self._update_nav_badge()
         self._update_reset_btn()
@@ -775,7 +803,7 @@ class ZASApp:
 
         tk.Label(self._details_frame, text="Module Details", font=("Consolas", 11, "bold"),
                  fg=COLORS["accent"], bg=COLORS["bg3"]).pack(anchor="w", padx=10, pady=(10, 6))
-        tk.Button(self._details_frame, text="✕ Закрыть", font=("Consolas", 8),
+        tk.Button(self._details_frame, text="✕ Close", font=("Consolas", 8),
                   bg=COLORS["bg2"], fg=COLORS["fg"], relief="flat",
                   command=self._hide_module_details).pack(anchor="e", padx=10)
 
@@ -857,8 +885,104 @@ class ZASApp:
     def _build_panel_advanced(self, parent):
         tk.Label(parent, text="Advanced", font=("Consolas", 12, "bold"),
                  fg=COLORS["accent"], bg=COLORS["bg"]).pack(anchor="w", pady=(0, 8))
+        options = ttk.LabelFrame(parent, text=" Options ", padding=8)
+        options.pack(fill="x", pady=(0, 12))
+        self._build_advanced_options(options)
+
+        shodan = tk.Frame(parent, bg=COLORS["bg"])
+        shodan.pack(fill="x", pady=(0, 12))
+        self._build_panel_shodan(shodan)
+
+        notify = tk.Frame(parent, bg=COLORS["bg"])
+        notify.pack(fill="x")
+        self._build_panel_notify(notify)
+
+        self._applied_advanced = dict(ADVANCED_DEFAULTS)
+        self._saved_advanced = None
+        self._updating_advanced = False
+        actions = ttk.Frame(parent)
+        actions.pack(fill="x", pady=(12, 4))
+        self.advanced_apply_button = ttk.Button(actions, text="Apply", command=self._apply_advanced_settings)
+        self.advanced_apply_button.pack(side="left", padx=(0, 8))
+        self.advanced_save_button = ttk.Button(actions, text="Save settings", command=self._save_advanced_settings)
+        self.advanced_save_button.pack(side="left")
+        self.advanced_status_var = tk.StringVar()
+        ttk.Label(parent, textvariable=self.advanced_status_var, wraplength=680).pack(fill="x", pady=4)
+        ttk.Label(parent, text="Apply uses settings for this session. Save also restores them on restart.\n"
+                              "Keys and tokens are stored in the local zas_config.json.",
+                  wraplength=680).pack(fill="x")
+        for key in ADVANCED_DEFAULTS:
+            getattr(self, key + "_var").trace_add("write", lambda *_: self._refresh_advanced_status())
+        self._refresh_advanced_status()
+
+    def _advanced_draft(self):
+        return {key: getattr(self, key + "_var").get() for key in ADVANCED_DEFAULTS}
+
+    def _advanced_scan_busy(self):
+        thread = getattr(self, "scan_thread", None)
+        return self.scanning or (thread is not None and thread.is_alive())
+
+    def _refresh_advanced_status(self):
+        if self._updating_advanced:
+            return
+        draft = self._advanced_draft()
+        busy = self._advanced_scan_busy()
+        self._advanced_busy_state = busy
+        dirty = draft != self._applied_advanced
+        unsaved = draft != self._saved_advanced
+        self.advanced_apply_button.configure(state="normal" if dirty and not busy else "disabled")
+        self.advanced_save_button.configure(state="normal" if unsaved and not busy else "disabled")
+        if busy:
+            message = "Advanced settings can be applied after the scan finishes."
+        elif dirty:
+            message = "You have unapplied changes."
+        elif unsaved:
+            message = "Settings are active for this session but have not been saved."
+        else:
+            message = "Settings applied and saved."
+        self.advanced_status_var.set(message)
+
+    def _activate_advanced_settings(self, settings, saved=False):
+        self._updating_advanced = True
+        try:
+            for key, value in settings.items():
+                getattr(self, key + "_var").set(value)
+        finally:
+            self._updating_advanced = False
+        self._applied_advanced = dict(settings)
+        if saved:
+            self._saved_advanced = dict(settings)
+        self._notif_manager = None
+        self._refresh_advanced_status()
+
+    def _apply_advanced_settings(self):
+        if self._advanced_scan_busy():
+            self.advanced_status_var.set("Wait for the scan to finish before applying settings.")
+            return False
+        try:
+            settings = normalize_advanced_settings(self._advanced_draft())
+        except ValueError as exc:
+            self.advanced_status_var.set(str(exc))
+            return False
+        self._activate_advanced_settings(settings)
+        return True
+
+    def _save_advanced_settings(self):
+        if self._advanced_scan_busy():
+            self.advanced_status_var.set("Wait for the scan to finish before saving settings.")
+            return False
+        try:
+            settings = normalize_advanced_settings(self._advanced_draft())
+            update_local_config(self._get_config_path(), {"advanced": settings})
+        except (OSError, ValueError) as exc:
+            self.advanced_status_var.set(f"Could not save: {exc}")
+            return False
+        self._activate_advanced_settings(settings, saved=True)
+        return True
+
+    def _build_advanced_options(self, parent):
         grid = tk.Frame(parent, bg=COLORS["bg"])
-        grid.pack(fill="both", expand=True)
+        grid.pack(fill="x")
 
         self.fingerprint_var = tk.BooleanVar(value=False)
         self.waf_detect_var = tk.BooleanVar(value=False)
@@ -900,6 +1024,8 @@ class ZASApp:
         ttk.Button(btns, text="Search", command=self._shodan_search, width=10).pack(side="left", padx=(0, 4))
         ttk.Button(btns, text="WP Scan", command=self._shodan_wp, width=10).pack(side="left", padx=(0, 4))
         ttk.Button(btns, text="Joomla", command=self._shodan_joomla, width=10).pack(side="left")
+        ttk.Label(bar, text="Apply a new API key first. You can change Query before each search.",
+                  wraplength=650).pack(anchor="w", pady=(6, 0))
 
     def _build_panel_notify(self, parent):
         tk.Label(parent, text="Notifications", font=("Consolas", 12, "bold"),
@@ -923,7 +1049,7 @@ class ZASApp:
     def _update_shells_nav_badge(self):
         try:
             n = len(self.shell_manager.tabs) if hasattr(self, "shell_manager") else 0
-            label = f"🖥  Shells" if n == 0 else f"🖥  Shells  {n}"
+            label = "🖥  Shells" if n == 0 else f"🖥  Shells  {n}"
             self._nav_buttons["shells"].configure(text=label)
         except Exception:
             pass
@@ -1047,7 +1173,7 @@ class ZASApp:
             mode = self.mode_var.get()
             self._status_mode.configure(text=f"mode: {mode}")
             self._status_stats.configure(
-                text=f"Выбрано модулей: {n_sel} · Потоков: {threads}",
+                text=f"Selected modules: {n_sel} · Threads: {threads}",
                 cursor="hand2")
             self._status_stats.bind("<Button-1>", self._status_selected_clicked)
         except Exception:
@@ -1124,7 +1250,7 @@ class ZASApp:
         
         # Make it clickable
         tag_name = f"shell_{id(shell_url)}"
-        self.log_text.tag_add(tag_name, f"end-1l", "end")
+        self.log_text.tag_add(tag_name, "end-1l", "end")
         self.log_text.tag_configure(tag_name, foreground=COLORS["green"], underline=True)
         self.log_text.tag_bind(tag_name, "<Button-1>", lambda e: open_shell())
         self.log_text.tag_bind(tag_name, "<Enter>", lambda e: self.log_text.configure(cursor="hand2"))
@@ -1164,6 +1290,11 @@ class ZASApp:
             self.username_var.set(cfg.get("username", ""))
             self.password_var.set(cfg.get("password", ""))
             self.custom_headers_var.set(cfg.get("custom_headers", ""))
+            if "advanced" in cfg:
+                try:
+                    self._activate_advanced_settings(normalize_advanced_settings(cfg["advanced"]), saved=True)
+                except ValueError as exc:
+                    self.advanced_status_var.set(f"Advanced settings could not be loaded: {exc}")
             for name, var in self.module_vars.items():
                 if name in cfg.get("modules", {}):
                     var.set(cfg["modules"][name])
@@ -1171,7 +1302,6 @@ class ZASApp:
             pass
 
     def _save_config(self):
-        import json
         # Clamp numeric settings so config never stores 0/huge values
         try:
             threads = max(1, min(100, int(self.threads_var.get() or 10)))
@@ -1199,10 +1329,11 @@ class ZASApp:
             "modules": {name: var.get() for name, var in self.module_vars.items()},
         }
         try:
-            with open(self._get_config_path(), "w", encoding="utf-8") as f:
-                json.dump(cfg, f, indent=2)
-        except OSError as e:
+            update_local_config(self._get_config_path(), cfg)
+            return True
+        except (OSError, ValueError) as e:
             self.log(f"[!] Config save failed: {e}", "error")
+            return False
 
     def _open_telegram(self):
         import webbrowser
@@ -1221,6 +1352,8 @@ class ZASApp:
                 self.log_text.configure(state="disabled")
             except queue.Empty:
                 break
+        if self._advanced_scan_busy() != self._advanced_busy_state:
+            self._refresh_advanced_status()
         self.root.after(100, self._process_log_queue)
 
     def _load_file(self):
@@ -1525,27 +1658,30 @@ class ZASApp:
 
     # ─── Advanced Features ─────────────────────────────────────────────────
 
-    def _init_notifications(self):
+    def _init_notifications(self, settings=None):
         """Initialize notification manager from GUI config (cached)."""
         if not HAS_ADVANCED:
             return None
-        if hasattr(self, '_notif_manager') and self._notif_manager:
+        cached = settings is None
+        if cached and self._notif_manager is not None:
             return self._notif_manager
+        settings = self._applied_advanced if settings is None else settings
         nm = NotificationManager()
         # Telegram
-        tg_token = self.tg_token_var.get().strip() if hasattr(self, 'tg_token_var') else ""
-        tg_chat = self.tg_chat_var.get().strip() if hasattr(self, 'tg_chat_var') else ""
+        tg_token = settings["tg_token"]
+        tg_chat = settings["tg_chat"]
         if tg_token and tg_chat:
             nm.add_telegram(tg_token, tg_chat)
         # Slack
-        slack_webhook = self.slack_webhook_var.get().strip() if hasattr(self, 'slack_webhook_var') else ""
+        slack_webhook = settings["slack_webhook"]
         if slack_webhook:
             nm.add_slack(slack_webhook)
         # Discord
-        discord_webhook = self.discord_webhook_var.get().strip() if hasattr(self, 'discord_webhook_var') else ""
+        discord_webhook = settings["discord_webhook"]
         if discord_webhook:
             nm.add_discord(discord_webhook)
-        self._notif_manager = nm
+        if cached:
+            self._notif_manager = nm
         return nm
 
     def _shodan_search(self):
@@ -1553,7 +1689,10 @@ class ZASApp:
         if not HAS_ADVANCED:
             messagebox.showinfo("ZAS", "Advanced features not available.")
             return
-        api_key = self.shodan_key_var.get().strip()
+        api_key = self._applied_advanced["shodan_key"]
+        if self.shodan_key_var.get().strip() != api_key:
+            messagebox.showinfo("ZAS", "Apply the new Shodan API key in Advanced first.")
+            return
         query = self.shodan_query_var.get().strip()
         if not api_key:
             messagebox.showwarning("ZAS", "Enter Shodan API key!")
@@ -1602,9 +1741,10 @@ class ZASApp:
         self.shodan_query_var.set('"X-Content-Encoded-By: Joomla"')
         self._shodan_search()
 
-    def _run_fingerprint(self, url, response_text, response_headers, cookies=None):
+    def _run_fingerprint(self, url, response_text, response_headers, cookies=None, settings=None):
         """Run passive fingerprinting on a target."""
-        if not HAS_ADVANCED or not getattr(self, 'fingerprint_var', None) or not self.fingerprint_var.get():
+        settings = self._applied_advanced if settings is None else settings
+        if not HAS_ADVANCED or not settings["fingerprint"]:
             return None
         try:
             result = fingerprint_cms(response_text, response_headers, cookies)
@@ -1615,9 +1755,10 @@ class ZASApp:
             self.log(f"[FP] Error: {e}", "error")
             return None
 
-    def _run_waf_detection(self, url, response_text, response_headers, cookies=None, status_code=None):
+    def _run_waf_detection(self, url, response_text, response_headers, cookies=None, status_code=None, settings=None):
         """Run WAF detection on a target."""
-        if not HAS_ADVANCED or not getattr(self, 'waf_detect_var', None) or not self.waf_detect_var.get():
+        settings = self._applied_advanced if settings is None else settings
+        if not HAS_ADVANCED or not settings["waf_detect"]:
             return None
         try:
             result = detect_waf(response_text, response_headers, cookies, status_code)
@@ -1629,9 +1770,10 @@ class ZASApp:
             self.log(f"[WAF] Error: {e}", "error")
             return None
 
-    def _run_credential_harvest(self, url, timeout=15, proxies=None):
+    def _run_credential_harvest(self, url, timeout=15, proxies=None, settings=None):
         """Run credential harvesting on a compromised host."""
-        if not HAS_ADVANCED or not getattr(self, 'cred_harvest_var', None) or not self.cred_harvest_var.get():
+        settings = self._applied_advanced if settings is None else settings
+        if not HAS_ADVANCED or not settings["cred_harvest"]:
             return []
         all_creds = []
         try:
@@ -1668,9 +1810,10 @@ class ZASApp:
             self.log(f"[CREDS] Error: {e}", "error")
         return all_creds
 
-    def _run_pivot(self, url, timeout=15, proxies=None):
+    def _run_pivot(self, url, timeout=15, proxies=None, settings=None):
         """Run pivot/lateral movement on a compromised host."""
-        if not HAS_ADVANCED or not getattr(self, 'pivot_var', None) or not self.pivot_var.get():
+        settings = self._applied_advanced if settings is None else settings
+        if not HAS_ADVANCED or not settings["pivot"]:
             return []
         all_targets = []
         try:
@@ -1712,12 +1855,12 @@ class ZASApp:
             self.log(f"[PIVOT] Error: {e}", "error")
         return all_targets
 
-    def _send_notification(self, cve, url, status, details=None):
+    def _send_notification(self, cve, url, status, details=None, manager=None):
         """Send notification about a finding."""
         if not HAS_ADVANCED:
             return
         try:
-            nm = self._init_notifications()
+            nm = self._init_notifications() if manager is None else manager
             if nm and nm.get_configured_channels():
                 nm.notify_vuln(cve, url, status, details)
         except Exception:
@@ -1738,6 +1881,10 @@ class ZASApp:
         from zas_core import set_custom_headers, parse_header_string
         set_custom_headers(parse_header_string(self.custom_headers_var.get()))
         self.scanning = True
+        self._refresh_advanced_status()
+        advanced_settings = dict(self._applied_advanced)
+        if self._advanced_draft() != advanced_settings:
+            self.log("[*] Advanced: using applied settings; form changes have not been applied", "warn")
         audit_path = audit_log.open(self.base_dir)
         if audit_path:
             self.log(f"[*] Audit log: {audit_path}", "info")
@@ -1759,7 +1906,7 @@ class ZASApp:
         self.status_var.set("Validating targets...")
 
         self.scan_thread = threading.Thread(
-            target=self._scan_worker, args=(list(self.targets), selected), daemon=True,
+            target=self._scan_worker, args=(list(self.targets), selected, advanced_settings), daemon=True,
         )
         self.scan_thread.start()
 
@@ -1804,7 +1951,9 @@ class ZASApp:
         self.status_var.set(f"Done | {count} finding(s)")
         audit_log.close()
 
-    def _scan_worker(self, targets, selected_modules):
+    def _scan_worker(self, targets, selected_modules, advanced_settings=None):
+        advanced_settings = dict(self._applied_advanced if advanced_settings is None else advanced_settings)
+        notification_manager = self._init_notifications(advanced_settings)
         mode = self.mode_var.get()
         try:
             timeout = max(1, int(self.timeout_var.get() or 15))
@@ -1860,9 +2009,9 @@ class ZASApp:
                 self.log(f"[*] Using custom payload: {pf}", "info")
             else:
                 self.log(f"[!] Payload file not found: {pf}", "warn")
-        if self.cookie_steal_var.get():
+        if advanced_settings["cookie_steal"]:
             extra_args["payload_type"] = "cookie_stealer"
-        if self.exfiltration_var.get():
+        if advanced_settings["exfiltration"]:
             extra_args["exfiltration"] = True
         from zas_core import proxy_count
         if proxy_count() > 0:
@@ -1977,7 +2126,7 @@ class ZASApp:
                 self.root.after(0, lambda s=short: self.status_var.set(f"Scanning: {s}"))
 
                 # Advanced: Passive fingerprinting + WAF detection (once per target)
-                if advanced_available[0] and getattr(self, 'fingerprint_var', None) and self.fingerprint_var.get():
+                if advanced_available[0] and (advanced_settings["fingerprint"] or advanced_settings["waf_detect"]):
                     try:
                         try:
                             import requests as req_lib
@@ -1986,12 +2135,12 @@ class ZASApp:
                             advanced_available[0] = False
                         else:
                             resp = req_lib.get(url, timeout=timeout, verify=_get_ssl_verify(), headers={"User-Agent": "Mozilla/5.0"})
-                            fp = self._run_fingerprint(url, resp.text, resp.headers, resp.cookies)
+                            fp = self._run_fingerprint(url, resp.text, resp.headers, resp.cookies, settings=advanced_settings)
                             if fp and fp.get("cms") != "unknown":
                                 self.log(f"[FP] {url} -> {fp['cms']} v{fp.get('version', '?')} (confidence: {fp.get('confidence', 0)}%)", "info")
                                 if fp.get("technologies"):
                                     self.log(f"[FP] Technologies: {', '.join(fp['technologies'])}", "info")
-                            waf = self._run_waf_detection(url, resp.text, resp.headers, resp.cookies, resp.status_code)
+                            waf = self._run_waf_detection(url, resp.text, resp.headers, resp.cookies, resp.status_code, settings=advanced_settings)
                             if waf and waf.get("waf"):
                                 self.log(f"[WAF] {url} -> {waf['waf']} (confidence: {waf.get('confidence', 0)}%)", "warn")
                                 if waf.get("bypasses"):
@@ -2020,7 +2169,7 @@ class ZASApp:
                                         self.log(f"     {k}: {v}", "success")
 
                                 # Send notification
-                                self._send_notification(cve, url, "exploited", result)
+                                self._send_notification(cve, url, "exploited", result, manager=notification_manager)
                                 audit_log.finding(
                                     cve, url, "exploited",
                                     shell_url=result.get("shell_url"),
@@ -2043,15 +2192,15 @@ class ZASApp:
                                         self.results_data.append({"cve": cve, "url": url, "status": "exploited", "details": result})
 
                                 # Advanced: Credential harvesting
-                                if HAS_ADVANCED and getattr(self, 'cred_harvest_var', None) and self.cred_harvest_var.get():
-                                    creds = self._run_credential_harvest(url, timeout, extra_args.get("proxies"))
+                                if HAS_ADVANCED and advanced_settings["cred_harvest"]:
+                                    creds = self._run_credential_harvest(url, timeout, extra_args.get("proxies"), settings=advanced_settings)
                                     if creds:
                                         with self.results_lock:
                                             self.results_data.append({"cve": "CREDS-001", "url": url, "status": "credentials", "details": {"count": len(creds), "creds": creds}})
 
                                 # Advanced: Pivot / Lateral movement
-                                if HAS_ADVANCED and getattr(self, 'pivot_var', None) and self.pivot_var.get():
-                                    pivot_targets = self._run_pivot(url, timeout, extra_args.get("proxies"))
+                                if HAS_ADVANCED and advanced_settings["pivot"]:
+                                    pivot_targets = self._run_pivot(url, timeout, extra_args.get("proxies"), settings=advanced_settings)
                                     if pivot_targets:
                                         with self.results_lock:
                                             self.results_data.append({"cve": "PIVOT-001", "url": url, "status": "pivot", "details": {"targets": len(pivot_targets), "pivot_targets": pivot_targets}})

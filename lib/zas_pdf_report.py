@@ -2,6 +2,7 @@
 # Executive summary + detailed findings in PDF format
 
 from datetime import datetime
+from html import escape
 
 
 def generate_pdf_report(results, scan_info=None, output_path="zas_report.pdf"):
@@ -48,7 +49,7 @@ def generate_pdf_report(results, scan_info=None, output_path="zas_report.pdf"):
     elements = []
 
     elements.append(Paragraph("ZAS v5.2 Scan Report", styles['Title2']))
-    elements.append(Paragraph(f"Generated: {scan_info.get('date', 'N/A')} | Mode: {scan_info.get('mode', 'N/A')}", styles['Subtitle']))
+    elements.append(Paragraph(f"Generated: {escape(str(scan_info.get('date', 'N/A')))} | Mode: {escape(str(scan_info.get('mode', 'N/A')))}", styles['Subtitle']))
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#30363d")))
     elements.append(Spacer(1, 20))
 
@@ -104,11 +105,12 @@ def generate_pdf_report(results, scan_info=None, output_path="zas_report.pdf"):
             details = r.get("details", {})
             method = details.get("method", "")
             output = details.get("output", "")[:100]
-            text = f"<b>{cve}</b> @ {url} [{status}]"
+            # Paragraph accepts markup; target-controlled fields must be literal text.
+            text = f"<b>{escape(str(cve))}</b> @ {escape(str(url))} [{escape(str(status))}]"
             if method:
-                text += f" via {method}"
+                text += f" via {escape(str(method))}"
             if output:
-                text += f" — {output}"
+                text += f" — {escape(str(output))}"
             elements.append(Paragraph(text, styles['Success']))
         if len(successful) > 50:
             elements.append(Paragraph(f"... and {len(successful)-50} more", styles['Info']))
@@ -121,7 +123,7 @@ def generate_pdf_report(results, scan_info=None, output_path="zas_report.pdf"):
             url = r.get("url", "N/A")
             details = r.get("details", {})
             reason = details.get("reason", "unknown")
-            elements.append(Paragraph(f"{cve} @ {url} — {reason}", styles['Fail']))
+            elements.append(Paragraph(f"{escape(str(cve))} @ {escape(str(url))} — {escape(str(reason))}", styles['Fail']))
 
     doc.build(elements)
     return output_path
@@ -154,7 +156,7 @@ td {{ padding: 8px; border-bottom: 1px solid #30363d; }}
 tr:hover {{ background: #161b22; }}
 </style></head><body>
 <h1>ZAS v5.2 Scan Report</h1>
-<p class="info">{scan_info.get('date', '')} | Mode: {scan_info.get('mode', '')}</p>
+<p class="info">{escape(str(scan_info.get('date', '')))} | Mode: {escape(str(scan_info.get('mode', '')))}</p>
 
 <div>
 <div class="stat"><div class="stat-value">{total}</div><div class="stat-label">Results</div></div>
@@ -168,16 +170,16 @@ tr:hover {{ background: #161b22; }}
     for r in results:
         if r.get("status") in ("exploited", "vulnerable"):
             d = r.get("details", {})
-            html += f'<tr class="success"><td>{r.get("cve","")}</td><td>{r.get("url","")}</td>'
-            html += f'<td>{r.get("status","")}</td><td>{d.get("method","")}</td>'
-            html += f'<td>{str(d.get("output",""))[:80]}</td></tr>\n'
+            html += f'<tr class="success"><td>{escape(str(r.get("cve","")))}</td><td>{escape(str(r.get("url","")))}</td>'
+            html += f'<td>{escape(str(r.get("status","")))}</td><td>{escape(str(d.get("method","")))}</td>'
+            html += f'<td>{escape(str(d.get("output",""))[:80])}</td></tr>\n'
 
     html += "</table>\n<h2>Failed</h2>\n<table><tr><th>CVE</th><th>URL</th><th>Reason</th></tr>\n"
     for r in results:
         if r.get("status") not in ("exploited", "vulnerable"):
             d = r.get("details", {})
-            html += f'<tr class="fail"><td>{r.get("cve","")}</td><td>{r.get("url","")}</td>'
-            html += f'<td>{d.get("reason","unknown")}</td></tr>\n'
+            html += f'<tr class="fail"><td>{escape(str(r.get("cve","")))}</td><td>{escape(str(r.get("url","")))}</td>'
+            html += f'<td>{escape(str(d.get("reason","unknown")))}</td></tr>\n'
 
     html += "</table></body></html>"
 

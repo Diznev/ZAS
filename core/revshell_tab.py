@@ -25,6 +25,7 @@ ACCENT = "#c9ff45"
 MUTED = "#8b949e"
 RED = "#f85149"
 BORDER = "#21262d"
+ALL_CLIENTS_LABEL = "All connections"
 
 MONO = ("Consolas", 9)
 MONO_LG = ("Consolas", 10)
@@ -96,6 +97,7 @@ class RevShellPanel(tk.Frame):
 
         self.lang_var = tk.StringVar(value="bash")
         langs = list(zas_revshell.LANGS) + ["auto"]
+        tk.Label(bar, text="Language:", font=UI, bg=BG, fg=FG).pack(side="left", padx=(12, 0))
         box = ttk.Combobox(bar, textvariable=self.lang_var, values=langs,
                            width=12, state="readonly")
         box.pack(side="left", padx=(12, 8))
@@ -137,9 +139,10 @@ class RevShellPanel(tk.Frame):
                   relief="flat", padx=12, command=self._send_cmd
                   ).pack(side="left", padx=(8, 0))
 
-        self.target_var = tk.StringVar(value="all")
-        ttk.Combobox(bar, textvariable=self.target_var, width=10,
-                     values=["all"], state="readonly").pack(side="left", padx=(8, 0))
+        tk.Label(bar, text="Recipient:", font=UI, bg=BG, fg=FG).pack(side="left", padx=(8, 0))
+        self.target_var = tk.StringVar(value=ALL_CLIENTS_LABEL)
+        ttk.Combobox(bar, textvariable=self.target_var, width=18,
+                     values=[ALL_CLIENTS_LABEL], state="readonly").pack(side="left", padx=(6, 0))
 
     # -- payload ------------------------------------------------------
 
@@ -237,7 +240,7 @@ class RevShellPanel(tk.Frame):
             self._log("[!] no connected shell", err=True)
             return
         target = self.target_var.get()
-        client = None if target == "all" else self.active_client
+        client = None if target in ("all", ALL_CLIENTS_LABEL) else self.active_client
         n = self.listener.send(cmd + "\n", client=client)
         self._log("$ %s   [%d client%s]" % (cmd, n, "" if n == 1 else "s"))
         self.cmd_var.set("")
@@ -270,7 +273,7 @@ class RevShellPanel(tk.Frame):
             self.clients_lbl.configure(
                 text="clients: %d" % (self.listener.client_count()
                                       if self.listener else 0))
-            vals = ["all"] + ["%s:%d" % c.addr for c in
+            vals = [ALL_CLIENTS_LABEL] + ["%s:%d" % c.addr for c in
                               (self.listener.clients if self.listener else [])]
             for child in self.winfo_children():
                 self._update_combobox(child, vals)

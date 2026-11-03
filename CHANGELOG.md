@@ -7,6 +7,92 @@ All notable changes to ZAS. The project is under active development — read
 
 ## Unreleased
 
+### Added — GHSA/NVD advisory preview
+
+- **Fetch advisories** in CVE candidates queries fixed public HTTPS metadata
+  endpoints by CVE, GHSA package or NVD keyword, without target credentials.
+- Preview claimed products, version ranges, source references, existing module
+  coverage and catalog duplicates before explicitly saving selected cards.
+  Preserve provider and fetch time in notes; all imported cards start as **New**.
+- Bound requests and response sizes, honor rate-limit cooldowns, and preserve
+  existing atomic catalog/revision checks. Failed imports retain the selection.
+- No automatic PoC download, execution, module installation or catalog writes
+  during fetching. NVD reference tags remain explicitly unverified.
+
+### Changed — English application UI
+
+- Translate all remaining application-owned labels, tooltips, filters, editor
+  dialogs, status messages and validation errors to English, including the
+  module browser, Advanced, report comparison, target history and CVE candidates.
+- Use the English Tcl message catalog and English comparison HTML output.
+  Persisted status IDs, configuration keys and user-entered text are unchanged.
+
+### Fixed — readable dropdowns and selections
+
+- Explicit dark-theme colors for combobox fields (including readonly/focused
+  states) and their popup listboxes, with contrasting text and selection colors.
+- Matching readonly-entry, table-selection and button-hover/pressed colors.
+- Add clear labels to comparison/candidate filters and Listener selectors;
+  the default Listener recipient now reads **All connections** instead of `all`.
+
+### Added — apply and save Advanced settings
+
+- **Apply** activates Advanced form values for the session; **Save settings**
+  also persists and restores them across restarts. Dirty/applied/saved
+  state is visible, and active scans retain their own settings snapshots.
+- Persist Advanced options, Shodan settings and notification credentials in an
+  additive local `advanced` section. Atomic merged config writes preserve
+  unrelated fields and previously saved Advanced values during scan autosaves.
+- Reset cached notification channels when settings are applied. Validate Telegram
+  pairs and webhook URLs before activation; saving failures retain the form and
+  previously applied values. WAF-only selection now reaches WAF detection.
+
+### Changed — combined Advanced panel
+
+- Advanced options, Shodan search and notification channels now share one
+  **Advanced** panel. Separate Shodan/Notify navigation entries are removed;
+  their existing controls and callbacks are preserved.
+
+### Added — local CVE research catalogue
+
+- New **CVE candidates** panel with a persistent local research queue: product,
+  claimed CVE, affected versions, prerequisites, PoC/advisory links, pinned
+  source revision, notes and workflow stage.
+- Add/edit records, search, stage filters, pagination and JSON import/export;
+  source/NVD/GHSA links open only when the operator chooses them.
+- Atomic writes, revision checks and an exclusive write lock prevent stale
+  editors from silently replacing newer research. Identical imports are skipped;
+  conflicting duplicates are rejected without partially applying the import.
+- Claims remain explicitly unverified. No PoC downloading, execution or automatic
+  module integration; existing configuration and module loading are unchanged.
+
+### Added — target history and target-scoped comparisons
+
+- New **Target history** panel reconstructs target cards from native JSON
+  exports, with a saved-result timeline showing CVEs, statuses and methods.
+- Search and pagination for targets and timelines, report-directory selection,
+  visible import errors and bounded background indexing.
+- Compare a target's two latest reports directly from its card. Comparison
+  restricts results to that endpoint; **All targets** clears the scope.
+- No new database or configuration migration. History omits command output and
+  credential fields; timestamps explicitly describe file modification time.
+
+### Added — offline report comparison
+
+- New **Compare reports** panel: load two native ZAS JSON exports and compare
+  findings by CVE and target, using the actual Langflow chain CVE where available.
+- New, repeated and not reconfirmed findings, duplicate aggregation, search,
+  filters, pagination and a standalone HTML comparison export.
+- Missing findings are not labelled as fixed. Comparison omits result details
+  and hides URL credentials and query values. Inputs are read locally with
+  size/record limits; comparison never contacts targets or runs modules.
+
+### Fixed — report output escaping
+
+- Escape target-controlled fields in PDF paragraphs and the HTML fallback of
+  `lib/zas_pdf_report.py`, so report data is rendered as text rather than markup.
+- Remove two unnecessary f-string prefixes flagged by lint in the GUI.
+
 ### Added — 6 modules sourced from three public PoC indexes
 
 Candidates were taken from `0xMarcio/pocindex`, `trickest/cve` 2026 and
