@@ -1,4 +1,4 @@
-# ZAS v5.2
+# ZAS v5.3
 
 **ZAS** is a desktop application for **authorized** vulnerability research and exploitation (internal red team, lab ranges, engagements with written scope).
 

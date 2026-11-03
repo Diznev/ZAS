@@ -71,7 +71,7 @@ class TelegramNotifier:
         try:
             req = urllib.request.Request(url, data=data, headers={
                 "Content-Type": "application/json",
-                "User-Agent": "ZAS/5.1",
+                "User-Agent": "ZAS/5.3",
             })
             resp = _urlopen(req, timeout=15)
             try:

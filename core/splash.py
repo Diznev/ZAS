@@ -36,7 +36,7 @@ class SplashScreen:
         # ZAS text
         tk.Label(logo_frame, text="ZAS", font=("Consolas", 36, "bold"),
                  fg="#c9ff45", bg="#0a0d0b").pack()
-        tk.Label(logo_frame, text="v5.1", font=("Consolas", 14),
+        tk.Label(logo_frame, text="v5.3", font=("Consolas", 14),
                  fg="#8b949e", bg="#0a0d0b").pack()
         
         # Loading text

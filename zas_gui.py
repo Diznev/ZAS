@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ZAS v5.2
+ZAS v5.3
 """
 
 import os
@@ -143,7 +143,7 @@ class Tooltip:
 class ZASApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("ZAS v5.2")
+        self.root.title("ZAS v5.3")
         self.root.geometry("1700x1000")
         self.root.minsize(1500, 900)
         self.root.configure(bg=COLORS["bg"])
@@ -214,7 +214,7 @@ class ZASApp:
         title_bar.pack(fill="x")
         title_bar.pack_propagate(False)
 
-        tk.Label(title_bar, text="⚡ ZAS v5.2", font=("Consolas", 11, "bold"),
+        tk.Label(title_bar, text="⚡ ZAS v5.3", font=("Consolas", 11, "bold"),
                  fg=COLORS["accent"], bg=COLORS["bg4"]).pack(side="left", padx=12)
         btn_frame = tk.Frame(title_bar, bg=COLORS["bg4"])
         btn_frame.pack(side="right", padx=8)

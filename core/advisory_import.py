@@ -266,7 +266,7 @@ class AdvisoryClient:
                 raise AdvisoryRateLimit(provider, remaining)
             self._next_request[provider] = self._clock() + (30 if provider == "NVD" else 1)
         request = Request(ENDPOINTS[provider] + "?" + urlencode(parameters),
-                          headers={"User-Agent": "ZAS-advisory-import/1.0", "Accept": "application/json"})
+                          headers={"User-Agent": "ZAS-advisory-import/5.3", "Accept": "application/json"})
         try:
             with self._opener.open(request, timeout=10) as response:
                 chunks = []

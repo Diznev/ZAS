@@ -48,7 +48,7 @@ def generate_pdf_report(results, scan_info=None, output_path="zas_report.pdf"):
 
     elements = []
 
-    elements.append(Paragraph("ZAS v5.2 Scan Report", styles['Title2']))
+    elements.append(Paragraph("ZAS v5.3 Scan Report", styles['Title2']))
     elements.append(Paragraph(f"Generated: {escape(str(scan_info.get('date', 'N/A')))} | Mode: {escape(str(scan_info.get('mode', 'N/A')))}", styles['Subtitle']))
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#30363d")))
     elements.append(Spacer(1, 20))
@@ -139,7 +139,7 @@ def _generate_html_fallback(results, scan_info, output_path):
     exploited = len([r for r in results if r.get("status") == "exploited"])
 
     html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>ZAS v5.2 Report</title>
+<html><head><meta charset="utf-8"><title>ZAS v5.3 Report</title>
 <style>
 body {{ background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; padding: 40px; }}
 h1 {{ color: #58a6ff; }}
@@ -155,7 +155,7 @@ th {{ background: #1f6feb; color: white; padding: 10px; text-align: left; }}
 td {{ padding: 8px; border-bottom: 1px solid #30363d; }}
 tr:hover {{ background: #161b22; }}
 </style></head><body>
-<h1>ZAS v5.2 Scan Report</h1>
+<h1>ZAS v5.3 Scan Report</h1>
 <p class="info">{escape(str(scan_info.get('date', '')))} | Mode: {escape(str(scan_info.get('mode', '')))}</p>
 
 <div>

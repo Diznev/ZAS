@@ -35,7 +35,7 @@ class ShodanAPI:
         url = f"{self.BASE_URL}{endpoint}?{urllib.parse.urlencode(params)}"
         
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "ZAS/5.1"})
+            req = urllib.request.Request(url, headers={"User-Agent": "ZAS/5.3"})
             resp = urllib.request.urlopen(req, timeout=30, context=ctx)
             try:
                 return json.loads(resp.read().decode())

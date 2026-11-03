@@ -5,7 +5,10 @@ All notable changes to ZAS. The project is under active development — read
 
 ---
 
-## Unreleased
+## ZAS v5.3 — 2026-11-04
+
+- Align the application title, splash screen, report banners, SARIF tool version
+  and integration User-Agent strings with release 5.3.
 
 ### Added — GHSA/NVD advisory preview
 
