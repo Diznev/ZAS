@@ -8,7 +8,7 @@ This package is the **runtime distribution**: GUI, exploit modules, and helper l
 
 > **This project is under active development.** See [Status and known limitations](#status-and-known-limitations) before relying on it — not everything here has been exercised against a live vulnerable target.
 
-![ZAS GUI](docs/zas_gui_screenshot.png)
+![ZAS v5.3 desktop interface](docs/zas_gui_screenshot.png)
 
 ---
 
